@@ -1,0 +1,26 @@
+{
+  "lastComputedDate": "2026-04-06",
+  "totalSessions": 250,
+  "totalMessages": 8500,
+  "dailyActivity": {
+    "2026-04-05": { "messageCount": 120, "sessionCount": 8, "toolCallCount": 45 },
+    "2026-04-06": { "messageCount": 85, "sessionCount": 5, "toolCallCount": 30 }
+  },
+  "dailyModelTokens": {
+    "2026-04-05": { "claude-opus-4-6": 350000, "claude-haiku-4-5-20251001": 12000 },
+    "2026-04-06": { "claude-opus-4-6": 180000 }
+  },
+  "modelUsage": {
+    "claude-opus-4-6": {
+      "inputTokens": 5000000,
+      "outputTokens": 1200000,
+      "cacheReadInputTokens": 3000000,
+      "cacheCreationInputTokens": 800000,
+      "costUSD": 0.0
+    }
+  },
+  "hourCounts": {
+    "14": 250, "15": 300, "16": 280, "17": 200,
+    "10": 50, "11": 80, "9": 30
+  }
+}

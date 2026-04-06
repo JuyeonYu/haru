@@ -1,0 +1,4 @@
+{"type":"user","timestamp":"2026-04-06T10:00:00Z","sessionId":"sess1","message":"Fix the login bug"}
+{"type":"assistant","timestamp":"2026-04-06T10:00:05Z","sessionId":"sess1","model":"claude-opus-4-6","usage":{"input_tokens":3000,"output_tokens":500,"cache_read_input_tokens":1200,"cache_creation_input_tokens":800},"message":"I'll fix the login bug."}
+{"type":"user","timestamp":"2026-04-06T10:01:00Z","sessionId":"sess1","message":"Now add tests"}
+{"type":"assistant","timestamp":"2026-04-06T10:01:08Z","sessionId":"sess1","model":"claude-opus-4-6","usage":{"input_tokens":4500,"output_tokens":1200,"cache_read_input_tokens":2000,"cache_creation_input_tokens":500},"message":"Adding tests now."}
