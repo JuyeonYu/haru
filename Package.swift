@@ -9,9 +9,15 @@ let package = Package(
     products: [
         .library(name: "CCMaxOKCore", targets: ["CCMaxOKCore"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.15.3")
+    ],
     targets: [
         .target(
             name: "CCMaxOKCore",
+            dependencies: [
+                .product(name: "SQLite", package: "SQLite.swift")
+            ],
             resources: [.copy("Resources/statusline.sh")]
         ),
         .testTarget(
