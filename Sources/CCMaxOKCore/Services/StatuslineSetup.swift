@@ -30,6 +30,14 @@ public enum StatuslineSetup {
             }
         }
 
+        // Only patch if no statusLine exists or it already points to our script
+        if let existingStatusLine = settings["statusLine"] as? [String: Any],
+           let existingCommand = existingStatusLine["command"] as? String,
+           !existingCommand.contains("ccmaxok") {
+            // Don't overwrite user's existing statusline config
+            return
+        }
+
         settings["statusLine"] = [
             "type": "command",
             "command": fileAccess.statuslineScriptPath.path()

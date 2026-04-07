@@ -33,6 +33,10 @@ struct CCMaxOKApp: App {
         .onAppear {
             appState.setup()
         }
+
+        Settings {
+            SettingsView()
+        }
     }
 
     private var iconColor: Color {

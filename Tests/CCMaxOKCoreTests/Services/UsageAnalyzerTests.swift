@@ -64,6 +64,22 @@ import Testing
     #expect(waste.isEmpty)
 }
 
+@Test func customThresholdsAreRespected() {
+    // With default thresholds, 75% 5h usage triggers level1 (80%) — should NOT fire
+    // With custom thresholds (level1=60), it should fire
+    let limits = RateLimits(
+        fiveHour: RateLimitWindow(usedPercentage: 75.0, resetsAt: Date().timeIntervalSince1970 + 3600),
+        sevenDay: RateLimitWindow(usedPercentage: 30.0, resetsAt: Date().timeIntervalSince1970 + 86400 * 3)
+    )
+
+    let defaultAlerts = UsageAnalyzer.checkOveruseAlerts(rateLimits: limits)
+    #expect(!defaultAlerts.contains { $0.type == "overuse_5h_80" })
+
+    let customThresholds = AlertThresholds(overuse5hLevel1: 60, overuse5hLevel2: 90, overuse7d: 70)
+    let customAlerts = UsageAnalyzer.checkOveruseAlerts(rateLimits: limits, thresholds: customThresholds)
+    #expect(customAlerts.contains { $0.type == "overuse_5h_80" })
+}
+
 @Test func generatesPatternRecommendation() {
     let cache = StatsCache(
         lastComputedDate: "2026-04-06",

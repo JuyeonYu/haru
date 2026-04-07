@@ -46,6 +46,15 @@ struct MenuBarView: View {
             Divider()
 
             HStack {
+                SettingsLink {
+                    Text("Settings...")
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+                Spacer()
+
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }

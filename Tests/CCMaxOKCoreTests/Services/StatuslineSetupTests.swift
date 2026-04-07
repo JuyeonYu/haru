@@ -60,6 +60,38 @@ import Testing
     #expect(command?.contains("statusline.sh") == true)
 }
 
+@Test func doesNotOverwriteExistingNonCCMaxOKStatusLine() throws {
+    let tempDir = FileManager.default.temporaryDirectory
+        .appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    let claudeDir = tempDir.appendingPathComponent(".claude")
+    try FileManager.default.createDirectory(at: claudeDir, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tempDir) }
+
+    let fam = FileAccessManager(homeDirectory: tempDir)
+
+    // Create existing settings.json with a non-ccmaxok statusLine
+    let existingSettings = """
+    {
+      "statusLine": {
+        "type": "command",
+        "command": "/usr/local/bin/my-custom-statusline.sh"
+      }
+    }
+    """
+    try existingSettings.write(to: fam.settingsPath, atomically: true, encoding: .utf8)
+
+    try StatuslineSetup.patchSettings(fileAccess: fam)
+
+    let data = try Data(contentsOf: fam.settingsPath)
+    let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+    // Existing non-ccmaxok statusLine must NOT be overwritten
+    let statusLine = json["statusLine"] as? [String: Any]
+    let command = statusLine?["command"] as? String
+    #expect(command == "/usr/local/bin/my-custom-statusline.sh")
+}
+
 @Test func patchesSettingsWhenNoFileExists() throws {
     let tempDir = FileManager.default.temporaryDirectory
         .appendingPathComponent(UUID().uuidString)

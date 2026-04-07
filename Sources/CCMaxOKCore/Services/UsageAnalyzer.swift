@@ -5,24 +5,38 @@ public struct UsageAlert: Sendable {
     public let message: String
 }
 
+public struct AlertThresholds: Sendable {
+    public let overuse5hLevel1: Double  // default 80
+    public let overuse5hLevel2: Double  // default 95
+    public let overuse7d: Double        // default 70
+
+    public init(overuse5hLevel1: Double = 80, overuse5hLevel2: Double = 95, overuse7d: Double = 70) {
+        self.overuse5hLevel1 = overuse5hLevel1
+        self.overuse5hLevel2 = overuse5hLevel2
+        self.overuse7d = overuse7d
+    }
+
+    public static let `default` = AlertThresholds()
+}
+
 public enum UsageAnalyzer {
 
     // MARK: - Overuse Alerts
 
-    public static func checkOveruseAlerts(rateLimits: RateLimits) -> [UsageAlert] {
+    public static func checkOveruseAlerts(rateLimits: RateLimits, thresholds: AlertThresholds = .default) -> [UsageAlert] {
         var alerts: [UsageAlert] = []
 
         let fh = rateLimits.fiveHour
         let sd = rateLimits.sevenDay
         let fhHoursLeft = fh.timeUntilReset / 3600
 
-        if fh.usedPercentage >= 95 {
+        if fh.usedPercentage >= thresholds.overuse5hLevel2 {
             let mins = Int(fh.timeUntilReset / 60)
             alerts.append(UsageAlert(
                 type: "overuse_5h_95",
                 message: "곧 rate limit에 걸립니다! 리셋까지 \(mins)분. 중요한 작업을 먼저 마무리하세요."
             ))
-        } else if fh.usedPercentage >= 80 {
+        } else if fh.usedPercentage >= thresholds.overuse5hLevel1 {
             let hours = String(format: "%.1f", fhHoursLeft)
             alerts.append(UsageAlert(
                 type: "overuse_5h_80",
@@ -30,7 +44,7 @@ public enum UsageAnalyzer {
             ))
         }
 
-        if sd.usedPercentage >= 70 {
+        if sd.usedPercentage >= thresholds.overuse7d {
             let daysLeft = Int(sd.timeUntilReset / 86400)
             alerts.append(UsageAlert(
                 type: "overuse_7d_70",
