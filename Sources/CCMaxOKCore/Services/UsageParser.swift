@@ -18,8 +18,8 @@ public enum UsageParser {
     }
 
     public static func dailyUsageFromStatsCache(_ cache: StatsCache, date: String) -> DailyUsage {
-        let activity = cache.dailyActivity[date]
-        let modelTokens = cache.dailyModelTokens[date] ?? [:]
+        let activity = cache.activity(for: date)
+        let modelTokens = cache.modelTokens(for: date) ?? [:]
         let totalTokens = modelTokens.values.reduce(0, +)
 
         return DailyUsage(

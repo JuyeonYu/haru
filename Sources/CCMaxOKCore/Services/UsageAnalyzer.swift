@@ -87,7 +87,7 @@ public enum UsageAnalyzer {
     public static func patternRecommendations(from cache: StatsCache) -> [String] {
         var recommendations: [String] = []
 
-        let allModels = Set(cache.dailyModelTokens.values.flatMap { $0.keys })
+        let allModels = Set(cache.dailyModelTokens.flatMap { $0.tokensByModel.keys })
         if allModels.count <= 1 {
             recommendations.append("간단한 작업은 Haiku로 처리하면 Opus 한도에 여유가 생겨요.")
         }

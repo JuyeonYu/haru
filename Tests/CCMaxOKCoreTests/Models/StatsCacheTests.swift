@@ -10,8 +10,8 @@ import Testing
     #expect(cache.totalSessions == 250)
     #expect(cache.totalMessages == 8500)
     #expect(cache.dailyActivity.count == 2)
-    #expect(cache.dailyActivity["2026-04-05"]?.messageCount == 120)
-    #expect(cache.dailyModelTokens["2026-04-06"]?["claude-opus-4-6"] == 180000)
+    #expect(cache.activity(for: "2026-04-05")?.messageCount == 120)
+    #expect(cache.modelTokens(for: "2026-04-06")?["claude-opus-4-6"] == 180000)
     #expect(cache.hourCounts?["14"] == 250)
 }
 

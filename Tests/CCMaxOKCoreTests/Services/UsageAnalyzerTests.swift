@@ -85,10 +85,10 @@ import Testing
         lastComputedDate: "2026-04-06",
         totalSessions: 100,
         totalMessages: 3000,
-        dailyActivity: [:],
+        dailyActivity: [],
         dailyModelTokens: [
-            "2026-04-05": ["claude-opus-4-6": 300000],
-            "2026-04-06": ["claude-opus-4-6": 200000]
+            DailyModelTokens(date: "2026-04-05", tokensByModel: ["claude-opus-4-6": 300000]),
+            DailyModelTokens(date: "2026-04-06", tokensByModel: ["claude-opus-4-6": 200000])
         ],
         modelUsage: nil,
         hourCounts: ["14": 200, "15": 300, "16": 250, "10": 20]
