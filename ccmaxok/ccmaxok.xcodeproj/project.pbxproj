@@ -1,0 +1,601 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D6D8337B2F84A12700C48F1B /* CCMaxOKCore in Frameworks */ = {isa = PBXBuildFile; productRef = D6D8337A2F84A12700C48F1B /* CCMaxOKCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D6A647932F83968C00F1FE79 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D6A6477B2F83968A00F1FE79 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D6A647822F83968A00F1FE79;
+			remoteInfo = ccmaxok;
+		};
+		D6A6479D2F83968C00F1FE79 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D6A6477B2F83968A00F1FE79 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D6A647822F83968A00F1FE79;
+			remoteInfo = ccmaxok;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		D6A647832F83968A00F1FE79 /* ccmaxok.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ccmaxok.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6A647922F83968C00F1FE79 /* ccmaxokTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ccmaxokTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6A6479C2F83968C00F1FE79 /* ccmaxokUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ccmaxokUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D6A647852F83968A00F1FE79 /* ccmaxok */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ccmaxok;
+			sourceTree = "<group>";
+		};
+		D6A647952F83968C00F1FE79 /* ccmaxokTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ccmaxokTests;
+			sourceTree = "<group>";
+		};
+		D6A6479F2F83968C00F1FE79 /* ccmaxokUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ccmaxokUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D6A647802F83968A00F1FE79 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6D8337B2F84A12700C48F1B /* CCMaxOKCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A6478F2F83968C00F1FE79 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A647992F83968C00F1FE79 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D6A6477A2F83968A00F1FE79 = {
+			isa = PBXGroup;
+			children = (
+				D6A647852F83968A00F1FE79 /* ccmaxok */,
+				D6A647952F83968C00F1FE79 /* ccmaxokTests */,
+				D6A6479F2F83968C00F1FE79 /* ccmaxokUITests */,
+				D6A647842F83968A00F1FE79 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D6A647842F83968A00F1FE79 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D6A647832F83968A00F1FE79 /* ccmaxok.app */,
+				D6A647922F83968C00F1FE79 /* ccmaxokTests.xctest */,
+				D6A6479C2F83968C00F1FE79 /* ccmaxokUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D6A647822F83968A00F1FE79 /* ccmaxok */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D6A647A62F83968C00F1FE79 /* Build configuration list for PBXNativeTarget "ccmaxok" */;
+			buildPhases = (
+				D6A6477F2F83968A00F1FE79 /* Sources */,
+				D6A647802F83968A00F1FE79 /* Frameworks */,
+				D6A647812F83968A00F1FE79 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D6A647852F83968A00F1FE79 /* ccmaxok */,
+			);
+			name = ccmaxok;
+			packageProductDependencies = (
+				D6D8337A2F84A12700C48F1B /* CCMaxOKCore */,
+			);
+			productName = ccmaxok;
+			productReference = D6A647832F83968A00F1FE79 /* ccmaxok.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D6A647912F83968C00F1FE79 /* ccmaxokTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D6A647A92F83968C00F1FE79 /* Build configuration list for PBXNativeTarget "ccmaxokTests" */;
+			buildPhases = (
+				D6A6478E2F83968C00F1FE79 /* Sources */,
+				D6A6478F2F83968C00F1FE79 /* Frameworks */,
+				D6A647902F83968C00F1FE79 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D6A647942F83968C00F1FE79 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D6A647952F83968C00F1FE79 /* ccmaxokTests */,
+			);
+			name = ccmaxokTests;
+			packageProductDependencies = (
+			);
+			productName = ccmaxokTests;
+			productReference = D6A647922F83968C00F1FE79 /* ccmaxokTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D6A6479B2F83968C00F1FE79 /* ccmaxokUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D6A647AC2F83968C00F1FE79 /* Build configuration list for PBXNativeTarget "ccmaxokUITests" */;
+			buildPhases = (
+				D6A647982F83968C00F1FE79 /* Sources */,
+				D6A647992F83968C00F1FE79 /* Frameworks */,
+				D6A6479A2F83968C00F1FE79 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D6A6479E2F83968C00F1FE79 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D6A6479F2F83968C00F1FE79 /* ccmaxokUITests */,
+			);
+			name = ccmaxokUITests;
+			packageProductDependencies = (
+			);
+			productName = ccmaxokUITests;
+			productReference = D6A6479C2F83968C00F1FE79 /* ccmaxokUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D6A6477B2F83968A00F1FE79 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					D6A647822F83968A00F1FE79 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					D6A647912F83968C00F1FE79 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = D6A647822F83968A00F1FE79;
+					};
+					D6A6479B2F83968C00F1FE79 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = D6A647822F83968A00F1FE79;
+					};
+				};
+			};
+			buildConfigurationList = D6A6477E2F83968A00F1FE79 /* Build configuration list for PBXProject "ccmaxok" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D6A6477A2F83968A00F1FE79;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D6D833792F84A12700C48F1B /* XCLocalSwiftPackageReference "../../ccmaxok" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D6A647842F83968A00F1FE79 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D6A647822F83968A00F1FE79 /* ccmaxok */,
+				D6A647912F83968C00F1FE79 /* ccmaxokTests */,
+				D6A6479B2F83968C00F1FE79 /* ccmaxokUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D6A647812F83968A00F1FE79 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A647902F83968C00F1FE79 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A6479A2F83968C00F1FE79 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D6A6477F2F83968A00F1FE79 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A6478E2F83968C00F1FE79 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6A647982F83968C00F1FE79 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D6A647942F83968C00F1FE79 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D6A647822F83968A00F1FE79 /* ccmaxok */;
+			targetProxy = D6A647932F83968C00F1FE79 /* PBXContainerItemProxy */;
+		};
+		D6A6479E2F83968C00F1FE79 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D6A647822F83968A00F1FE79 /* ccmaxok */;
+			targetProxy = D6A6479D2F83968C00F1FE79 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D6A647A42F83968C00F1FE79 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D6A647A52F83968C00F1FE79 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		D6A647A72F83968C00F1FE79 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tah.ccmaxok;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D6A647A82F83968C00F1FE79 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tah.ccmaxok;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D6A647AA2F83968C00F1FE79 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tah.ccmaxokTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ccmaxok.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ccmaxok";
+			};
+			name = Debug;
+		};
+		D6A647AB2F83968C00F1FE79 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tah.ccmaxokTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ccmaxok.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ccmaxok";
+			};
+			name = Release;
+		};
+		D6A647AD2F83968C00F1FE79 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tah.ccmaxokUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = ccmaxok;
+			};
+			name = Debug;
+		};
+		D6A647AE2F83968C00F1FE79 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DUV8UP2WXU;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tah.ccmaxokUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = ccmaxok;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D6A6477E2F83968A00F1FE79 /* Build configuration list for PBXProject "ccmaxok" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6A647A42F83968C00F1FE79 /* Debug */,
+				D6A647A52F83968C00F1FE79 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D6A647A62F83968C00F1FE79 /* Build configuration list for PBXNativeTarget "ccmaxok" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6A647A72F83968C00F1FE79 /* Debug */,
+				D6A647A82F83968C00F1FE79 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D6A647A92F83968C00F1FE79 /* Build configuration list for PBXNativeTarget "ccmaxokTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6A647AA2F83968C00F1FE79 /* Debug */,
+				D6A647AB2F83968C00F1FE79 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D6A647AC2F83968C00F1FE79 /* Build configuration list for PBXNativeTarget "ccmaxokUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6A647AD2F83968C00F1FE79 /* Debug */,
+				D6A647AE2F83968C00F1FE79 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D6D833792F84A12700C48F1B /* XCLocalSwiftPackageReference "../../ccmaxok" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../ccmaxok;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D6D8337A2F84A12700C48F1B /* CCMaxOKCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CCMaxOKCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = D6A6477B2F83968A00F1FE79 /* Project object */;
+}
