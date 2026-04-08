@@ -86,6 +86,44 @@ public final class ThemeManager: Sendable {
         return result
     }
 
+    /// 밝기 조정 (-1.0 ~ 1.0)
+    public func applyBrightness(_ image: NSImage, amount: Double) -> NSImage {
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let ciImage = CIImage(bitmapImageRep: rep) else { return image }
+
+        let filter = CIFilter(name: "CIColorControls")!
+        filter.setValue(ciImage, forKey: kCIInputImageKey)
+        filter.setValue(amount, forKey: kCIInputBrightnessKey)
+
+        guard let output = filter.outputImage else { return image }
+        let ciContext = CIContext()
+        guard let cgImage = ciContext.createCGImage(output, from: output.extent) else { return image }
+
+        let result = NSImage(cgImage: cgImage, size: image.size)
+        result.isTemplate = false
+        return result
+    }
+
+    /// 채도 조정 (0.0 = 흑백, 1.0 = 원본, 2.0 = 과채도)
+    public func applySaturation(_ image: NSImage, amount: Double) -> NSImage {
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let ciImage = CIImage(bitmapImageRep: rep) else { return image }
+
+        let filter = CIFilter(name: "CIColorControls")!
+        filter.setValue(ciImage, forKey: kCIInputImageKey)
+        filter.setValue(amount, forKey: kCIInputSaturationKey)
+
+        guard let output = filter.outputImage else { return image }
+        let ciContext = CIContext()
+        guard let cgImage = ciContext.createCGImage(output, from: output.extent) else { return image }
+
+        let result = NSImage(cgImage: cgImage, size: image.size)
+        result.isTemplate = false
+        return result
+    }
+
     // MARK: - 세그먼트 합성
 
     /// 이미지를 N칸 세그먼트로 합성한다. filled 개수만 원본, 나머지는 dimmed.

@@ -36,11 +36,23 @@ public struct SimpleRenderer: UsageRenderer {
             return .symbolAndText(symbol: "photo", text: "\(pct)%")
         }
 
-        if remainPct <= 20 {
+        // 잔여량 기반 이미지 효과
+        switch remainPct {
+        case 80...:
+            // 여유: 밝게
+            img = tm.applyBrightness(img, amount: 0.05)
+        case 50..<80:
+            // 보통: 원본
+            break
+        case 20..<50:
+            // 주의: 채도 낮춤
+            img = tm.applySaturation(img, amount: 0.5)
+        default:
+            // 위험: 흑백 + 흐림
             img = tm.applyGrayscale(img)
+            img = tm.applyOpacity(img, opacity: 0.6)
         }
-        let opacity = max(0.3, remainPct / 100)
-        img = tm.applyOpacity(img, opacity: opacity)
+
         img = FaceCropper.applyShapeMask(to: img, mask: mask)
         let resized = tm.resizeForMenuBar(img)
         return .imageAndText(image: resized, text: "\(pct)%")

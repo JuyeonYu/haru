@@ -17,13 +17,13 @@ struct RateLimitCard: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Rate Limits", systemImage: "gauge.medium")
+            Label("사용량", systemImage: "gauge.medium")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            rateLimitRow(label: "5시간 한도", percentage: fiveHourPct, resetsAt: fiveHourResetsAt, totalWindow: Self.fiveHourWindow)
-            rateLimitRow(label: "7일 한도", percentage: sevenDayPct, resetsAt: sevenDayResetsAt, totalWindow: Self.sevenDayWindow)
+            rateLimitRow(label: "5시간", percentage: fiveHourPct, resetsAt: fiveHourResetsAt, totalWindow: Self.fiveHourWindow)
+            rateLimitRow(label: "7일", percentage: sevenDayPct, resetsAt: sevenDayResetsAt, totalWindow: Self.sevenDayWindow)
         }
         .padding(12)
         .background(.quaternary.opacity(0.5))
@@ -34,14 +34,13 @@ struct RateLimitCard: View {
     private func rateLimitRow(label: String, percentage: Double, resetsAt: Date, totalWindow: TimeInterval) -> some View {
         let remaining = max(0, resetsAt.timeIntervalSinceNow)
         let elapsedPct = min(100, (1 - remaining / totalWindow) * 100)
-
         let remainPct = max(0, 100 - percentage)
 
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(label).font(.caption)
                 Spacer()
-                Text("잔여 \(Int(remainPct))%")
+                Text("\(Int(remainPct))%")
                     .font(.caption).fontWeight(.bold)
                     .foregroundStyle(colorForRemaining(remainPct))
             }
@@ -53,23 +52,25 @@ struct RateLimitCard: View {
                 Spacer()
                 Text(timeUntil(resetsAt))
                     .font(.caption2).fontWeight(.medium)
-                    .foregroundStyle(colorForTimePct(elapsedPct))
+                    .foregroundStyle(colorForReset(elapsedPct))
             }
             ProgressView(value: elapsedPct, total: 100)
-                .tint(colorForTimePct(elapsedPct))
+                .tint(colorForReset(elapsedPct))
         }
     }
 
+    // 잔여량 색상: 메뉴바 아이콘과 동일
     private func colorForRemaining(_ pct: Double) -> Color {
         if pct > 50 { return .green }
         if pct > 0 { return .yellow }
         return .red
     }
 
-    private func colorForTimePct(_ pct: Double) -> Color {
-        if pct >= 80 { return .green }
-        if pct >= 50 { return .yellow }
-        return .blue
+    // 리셋 시간 색상: 리셋 임박 = 곧 회복 = 초록
+    private func colorForReset(_ elapsedPct: Double) -> Color {
+        if elapsedPct >= 80 { return .green }
+        if elapsedPct >= 50 { return .yellow }
+        return .secondary
     }
 
     private func timeUntil(_ date: Date) -> String {

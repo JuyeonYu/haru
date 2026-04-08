@@ -1,19 +1,14 @@
 import SwiftUI
 import CCMaxOKCore
+import UniformTypeIdentifiers
 
 struct MenuBarView: View {
     let state: AppState
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 2) {
-                Text("CCMaxOK")
-                    .font(.headline)
-                Text("Claude Code Usage Monitor")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.vertical, 12)
+            profileHeader
+                .padding(.vertical, 12)
 
             Divider()
 
@@ -35,6 +30,10 @@ struct MenuBarView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
                     } else {
+                        if shouldShowOnboarding {
+                            onboardingCard
+                        }
+
                         RateLimitCard(
                             fiveHourPct: state.fiveHourUsedPct,
                             fiveHourResetsAt: state.fiveHourResetsAt,
@@ -91,6 +90,124 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+        }
+    }
+
+    private var shouldShowOnboarding: Bool {
+        let dismissed = UserDefaults.standard.bool(forKey: "onboarding_dismissed")
+        let hasImage = !(UserDefaults.standard.string(forKey: "image_high") ?? "").isEmpty
+        let useCustom = UserDefaults.standard.bool(forKey: "simple_use_custom_image")
+        return !dismissed && !(useCustom && hasImage)
+    }
+
+    private var onboardingCard: some View {
+        VStack(spacing: 8) {
+            Text("📸")
+                .font(.title)
+            Text("사진 한 장으로\n나만의 메뉴바를 만들어보세요")
+                .font(.caption)
+                .multilineTextAlignment(.center)
+            Button("사진 선택하기") {
+                pickOnboardingImage()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            Button("건너뛰기") {
+                UserDefaults.standard.set(true, forKey: "onboarding_dismissed")
+            }
+            .buttonStyle(.plain)
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(.quaternary.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func pickOnboardingImage() {
+        DispatchQueue.main.async {
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.png, .jpeg]
+            panel.allowsMultipleSelection = false
+            panel.canChooseDirectories = false
+
+            guard panel.runModal() == .OK, let url = panel.url,
+                  let originalImage = NSImage(contentsOf: url) else { return }
+
+            let faces = FaceCropper.detectFaces(in: originalImage)
+            let imageToSave: NSImage
+            if let first = faces.first,
+               let cropped = FaceCropper.cropFace(from: originalImage, faceRect: first, mask: .none) {
+                imageToSave = cropped
+            } else {
+                imageToSave = originalImage
+            }
+
+            if let filename = ThemeManager.shared.saveImage(imageToSave, name: "user_high") {
+                UserDefaults.standard.set(filename, forKey: "image_high")
+                UserDefaults.standard.set(true, forKey: "simple_use_custom_image")
+                UserDefaults.standard.set(true, forKey: "onboarding_dismissed")
+                NotificationCenter.default.post(name: .rendererSettingsChanged, object: nil)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var profileHeader: some View {
+        let imageFile = UserDefaults.standard.string(forKey: "image_high") ?? ""
+        let useCustom = UserDefaults.standard.bool(forKey: "simple_use_custom_image")
+        let remainPct = max(0, 100 - state.fiveHourUsedPct)
+
+        if useCustom && !imageFile.isEmpty,
+           let img = ThemeManager.shared.loadImage(named: imageFile) {
+            let mask = FaceCropper.MaskShape(rawValue: UserDefaults.standard.string(forKey: "image_mask") ?? "circle") ?? .circle
+            let masked = FaceCropper.applyShapeMask(to: img, mask: mask)
+            let effected = applyStatusEffect(to: masked, remainPct: remainPct)
+            let resized = ThemeManager.shared.resizeForMenuBar(effected, height: 48)
+
+            HStack(spacing: 10) {
+                Image(nsImage: resized)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(statusMessage(remainPct))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("\(Int(remainPct))% 남음")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+        } else {
+            VStack(spacing: 2) {
+                Text("FaceFuel")
+                    .font(.headline)
+                Text("Claude Code Usage Monitor")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func statusMessage(_ remainPct: Double) -> String {
+        switch remainPct {
+        case 80...: return "여유롭네요"
+        case 50..<80: return "괜찮아요"
+        case 20..<50: return "절반 지났어요"
+        case 10..<20: return "아껴쓰세요"
+        default: return "거의 다 썼어요"
+        }
+    }
+
+    private func applyStatusEffect(to image: NSImage, remainPct: Double) -> NSImage {
+        let tm = ThemeManager.shared
+        switch remainPct {
+        case 50...: return image
+        case 20..<50: return tm.applyOpacity(image, opacity: 0.7)
+        default:
+            let gray = tm.applyGrayscale(image)
+            return tm.applyOpacity(gray, opacity: 0.6)
         }
     }
 }
