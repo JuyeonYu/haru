@@ -25,6 +25,11 @@ public enum StatuslineSetup {
         let settingsPath = fileAccess.settingsPath
         if FileManager.default.fileExists(atPath: settingsPath.path()) {
             let data = try Data(contentsOf: settingsPath)
+
+            // 패치 전 백업
+            let backupPath = settingsPath.deletingPathExtension().appendingPathExtension("json.backup")
+            try? data.write(to: backupPath, options: .atomic)
+
             if let existing = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 settings = existing
             }

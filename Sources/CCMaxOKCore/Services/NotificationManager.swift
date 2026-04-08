@@ -1,17 +1,33 @@
 import Foundation
 import UserNotifications
 
-public final class NotificationManager: Sendable {
+public final class NotificationManager: NSObject, Sendable, UNUserNotificationCenterDelegate {
     private let database: DatabaseManager
     private let cooldownSeconds: Double
 
     public init(database: DatabaseManager, cooldownSeconds: Double = 3600) {
         self.database = database
         self.cooldownSeconds = cooldownSeconds
+        super.init()
+        UNUserNotificationCenter.current().delegate = self
     }
 
     public func requestPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error {
+                print("[CCMaxOK] Notification permission error: \(error)")
+            }
+            print("[CCMaxOK] Notification permission granted: \(granted)")
+        }
+    }
+
+    // 앱이 포그라운드일 때도 배너 표시
+    public func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 
     public func shouldSend(alert: UsageAlert) throws -> Bool {

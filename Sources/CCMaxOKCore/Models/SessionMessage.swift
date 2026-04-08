@@ -14,13 +14,11 @@ public struct MessageUsage: Codable, Sendable {
     }
 }
 
-public struct SessionMessage: Codable, Sendable {
+public struct SessionMessage: Sendable {
     public let type: String
-    public let timestamp: String
-    public let sessionId: String
+    public let sessionId: String?
     public let model: String?
     public let usage: MessageUsage?
-    public let message: String?
 
     public struct TokenTotals: Sendable {
         public let input: Int
@@ -31,13 +29,29 @@ public struct SessionMessage: Codable, Sendable {
         public var total: Int { input + output + cacheRead + cacheCreation }
     }
 
+    /// Parse JSONL loosely — only extract fields we need, skip unknown structure
     public static func parseJSONL(_ content: String) -> [SessionMessage] {
-        let decoder = JSONDecoder()
         return content
             .split(separator: "\n", omittingEmptySubsequences: true)
             .compactMap { line in
-                guard let data = line.data(using: .utf8) else { return nil }
-                return try? decoder.decode(SessionMessage.self, from: data)
+                guard let data = line.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let type = json["type"] as? String else { return nil }
+
+                let sessionId = json["sessionId"] as? String
+                let model = json["model"] as? String
+
+                var usage: MessageUsage? = nil
+                if let usageDict = json["usage"] as? [String: Any] {
+                    usage = MessageUsage(
+                        inputTokens: usageDict["input_tokens"] as? Int ?? 0,
+                        outputTokens: usageDict["output_tokens"] as? Int ?? 0,
+                        cacheReadInputTokens: usageDict["cache_read_input_tokens"] as? Int,
+                        cacheCreationInputTokens: usageDict["cache_creation_input_tokens"] as? Int
+                    )
+                }
+
+                return SessionMessage(type: type, sessionId: sessionId, model: model, usage: usage)
             }
     }
 

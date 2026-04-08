@@ -6,14 +6,14 @@ public struct UsageAlert: Sendable {
 }
 
 public struct AlertThresholds: Sendable {
-    public let overuse5hLevel1: Double  // default 80
-    public let overuse5hLevel2: Double  // default 95
-    public let overuse7d: Double        // default 70
+    public let remain5hLevel1: Double  // 잔여 % 이하일 때 1단계 (default 50)
+    public let remain5hLevel2: Double  // 잔여 % 이하일 때 2단계 (default 10)
+    public let remain7d: Double        // 잔여 % 이하일 때 (default 30)
 
-    public init(overuse5hLevel1: Double = 80, overuse5hLevel2: Double = 95, overuse7d: Double = 70) {
-        self.overuse5hLevel1 = overuse5hLevel1
-        self.overuse5hLevel2 = overuse5hLevel2
-        self.overuse7d = overuse7d
+    public init(remain5hLevel1: Double = 50, remain5hLevel2: Double = 10, remain7d: Double = 30) {
+        self.remain5hLevel1 = remain5hLevel1
+        self.remain5hLevel2 = remain5hLevel2
+        self.remain7d = remain7d
     }
 
     public static let `default` = AlertThresholds()
@@ -28,27 +28,29 @@ public enum UsageAnalyzer {
 
         let fh = rateLimits.fiveHour
         let sd = rateLimits.sevenDay
+        let fhRemain = fh.remainingPercentage
+        let sdRemain = sd.remainingPercentage
         let fhHoursLeft = fh.timeUntilReset / 3600
 
-        if fh.usedPercentage >= thresholds.overuse5hLevel2 {
+        if fhRemain <= thresholds.remain5hLevel2 {
             let mins = Int(fh.timeUntilReset / 60)
             alerts.append(UsageAlert(
                 type: "overuse_5h_95",
-                message: "곧 rate limit에 걸립니다! 리셋까지 \(mins)분. 중요한 작업을 먼저 마무리하세요."
+                message: "잔여 \(Int(fhRemain))%! 곧 rate limit에 걸립니다. 리셋까지 \(mins)분."
             ))
-        } else if fh.usedPercentage >= thresholds.overuse5hLevel1 {
+        } else if fhRemain <= thresholds.remain5hLevel1 {
             let hours = String(format: "%.1f", fhHoursLeft)
             alerts.append(UsageAlert(
                 type: "overuse_5h_80",
-                message: "5시간 한도의 \(Int(fh.usedPercentage))%를 사용했어요. 리셋까지 \(hours)시간 남았습니다."
+                message: "5시간 한도 잔여 \(Int(fhRemain))%. 리셋까지 \(hours)시간 남았습니다."
             ))
         }
 
-        if sd.usedPercentage >= thresholds.overuse7d {
+        if sdRemain <= thresholds.remain7d {
             let daysLeft = Int(sd.timeUntilReset / 86400)
             alerts.append(UsageAlert(
                 type: "overuse_7d_70",
-                message: "7일 한도의 \(Int(sd.usedPercentage))% 소진. 리셋까지 \(daysLeft)일 남았어요. 페이스 조절 필요."
+                message: "7일 한도 잔여 \(Int(sdRemain))%. 리셋까지 \(daysLeft)일 남았어요."
             ))
         }
 

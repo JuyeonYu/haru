@@ -9,7 +9,7 @@ public final class FileWatcher: @unchecked Sendable {
 
     public init(
         watchPaths: [String],
-        pollingInterval: TimeInterval = 300, // 5 minutes
+        pollingInterval: TimeInterval = 30, // 30 seconds
         onChange: @escaping @Sendable () -> Void
     ) {
         self.watchPaths = watchPaths
