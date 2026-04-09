@@ -201,13 +201,20 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
         } else {
-            VStack(spacing: 2) {
-                Text("haru")
-                    .font(.headline)
-                Text("Claude Code Usage Monitor")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 36, height: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("haru")
+                        .font(.headline)
+                    Text("Claude Code Usage Monitor")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
             }
+            .padding(.horizontal, 12)
         }
     }
 
