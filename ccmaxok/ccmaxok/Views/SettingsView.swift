@@ -59,6 +59,7 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.radioGroup)
+                .onChange(of: rendererId) { _, _ in notifyRendererChanged() }
 
                 Toggle("리셋 시간 표시", isOn: $showResetTime)
                     .onChange(of: showResetTime) { _, _ in notifyRendererChanged() }
