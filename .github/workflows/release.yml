@@ -35,9 +35,10 @@ jobs:
 
       - name: Inject version into Xcode project
         run: |
-          cd ccmaxok
-          agvtool new-marketing-version "${{ steps.version.outputs.version }}"
-          agvtool new-version -all "${{ github.run_number }}"
+          sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = ${{ steps.version.outputs.version }};/" \
+            ccmaxok/ccmaxok.xcodeproj/project.pbxproj
+          sed -i '' "s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = ${{ github.run_number }};/" \
+            ccmaxok/ccmaxok.xcodeproj/project.pbxproj
 
       - name: Import certificates
         env:
