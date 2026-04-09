@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "CCMaxOK",
+    defaultLocalization: "ko",
     platforms: [
         .macOS(.v15)
     ],
@@ -18,7 +19,10 @@ let package = Package(
             dependencies: [
                 .product(name: "SQLite", package: "SQLite.swift")
             ],
-            resources: [.copy("Resources/statusline.sh")]
+            resources: [
+                .copy("Resources/statusline.sh"),
+                .process("Resources/Localizable.xcstrings")
+            ]
         ),
         .testTarget(
             name: "CCMaxOKCoreTests",

@@ -81,6 +81,26 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+
+            HStack(spacing: 4) {
+                Button {
+                    if let url = URL(string: "https://github.com/sponsors/JuyeonYu?frequency=one-time&amount=5") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(Color(nsColor: NSColor(red: 0xEA/255, green: 0x4A/255, blue: 0xAA/255, alpha: 1)))
+                        Text("Support development")
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 8)
         }
     }
 
@@ -167,10 +187,13 @@ struct MenuBarView: View {
             HStack(spacing: 10) {
                 Image(nsImage: resized)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(statusMessage(remainPct))
+                    Text("haru")
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("\(Int(remainPct))% 남음")
+                    Text("Claude Code Usage Monitor")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Text("\(statusMessage(remainPct)) · \(Int(remainPct))% 남음")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -179,7 +202,7 @@ struct MenuBarView: View {
             .padding(.horizontal, 12)
         } else {
             VStack(spacing: 2) {
-                Text("FaceFuel")
+                Text("haru")
                     .font(.headline)
                 Text("Claude Code Usage Monitor")
                     .font(.caption2)
@@ -190,11 +213,11 @@ struct MenuBarView: View {
 
     private func statusMessage(_ remainPct: Double) -> String {
         switch remainPct {
-        case 80...: return "여유롭네요"
-        case 50..<80: return "괜찮아요"
-        case 20..<50: return "절반 지났어요"
-        case 10..<20: return "아껴쓰세요"
-        default: return "거의 다 썼어요"
+        case 80...: return String(localized: "여유롭네요")
+        case 50..<80: return String(localized: "괜찮아요")
+        case 20..<50: return String(localized: "절반 지났어요")
+        case 10..<20: return String(localized: "아껴쓰세요")
+        default: return String(localized: "거의 다 썼어요")
         }
     }
 

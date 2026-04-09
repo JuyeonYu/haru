@@ -53,8 +53,9 @@ import Testing
 }
 
 @Test func noAlertsWhenNormal() {
+    // usedPct 30% → remainPct 70%, well above default threshold (50)
     let limits = RateLimits(
-        fiveHour: RateLimitWindow(usedPercentage: 50.0, resetsAt: Date().timeIntervalSince1970 + 7200),
+        fiveHour: RateLimitWindow(usedPercentage: 30.0, resetsAt: Date().timeIntervalSince1970 + 7200),
         sevenDay: RateLimitWindow(usedPercentage: 40.0, resetsAt: Date().timeIntervalSince1970 + 86400 * 4)
     )
     let overuse = UsageAnalyzer.checkOveruseAlerts(rateLimits: limits)
@@ -65,17 +66,17 @@ import Testing
 }
 
 @Test func customThresholdsAreRespected() {
-    // With default thresholds, 75% 5h usage triggers level1 (80%) — should NOT fire
-    // With custom thresholds (level1=60), it should fire
+    // usedPct 40% → remainPct 60%, default threshold remain5hLevel1=50 → 60>50 no alert
+    // custom threshold remain5hLevel1=70 → 60<=70 fires alert
     let limits = RateLimits(
-        fiveHour: RateLimitWindow(usedPercentage: 75.0, resetsAt: Date().timeIntervalSince1970 + 3600),
+        fiveHour: RateLimitWindow(usedPercentage: 40.0, resetsAt: Date().timeIntervalSince1970 + 3600),
         sevenDay: RateLimitWindow(usedPercentage: 30.0, resetsAt: Date().timeIntervalSince1970 + 86400 * 3)
     )
 
     let defaultAlerts = UsageAnalyzer.checkOveruseAlerts(rateLimits: limits)
     #expect(!defaultAlerts.contains { $0.type == "overuse_5h_80" })
 
-    let customThresholds = AlertThresholds(overuse5hLevel1: 60, overuse5hLevel2: 90, overuse7d: 70)
+    let customThresholds = AlertThresholds(remain5hLevel1: 70, remain5hLevel2: 5, remain7d: 70)
     let customAlerts = UsageAnalyzer.checkOveruseAlerts(rateLimits: limits, thresholds: customThresholds)
     #expect(customAlerts.contains { $0.type == "overuse_5h_80" })
 }

@@ -1,0 +1,219 @@
+{
+  "sourceLanguage" : "ko",
+  "strings" : {
+    "여유가 많아요! 큰 작업을 하기 좋은 때예요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plenty of capacity! Great time for big tasks."
+          }
+        }
+      }
+    },
+    "프로젝트 리팩토링" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Project refactoring"
+          }
+        }
+      }
+    },
+    "테스트 커버리지 올리기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Increase test coverage"
+          }
+        }
+      }
+    },
+    "코드 문서화" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code documentation"
+          }
+        }
+      }
+    },
+    "적당히 남았어요. 중간 규모 작업에 활용하세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moderate capacity. Good for mid-size tasks."
+          }
+        }
+      }
+    },
+    "코드 리뷰" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code review"
+          }
+        }
+      }
+    },
+    "버그 수정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bug fixes"
+          }
+        }
+      }
+    },
+    "유닛 테스트 추가" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add unit tests"
+          }
+        }
+      }
+    },
+    "한도가 얼마 안 남았어요. 가볍게 사용하세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running low. Use lightly."
+          }
+        }
+      }
+    },
+    "짧은 질문" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick questions"
+          }
+        }
+      }
+    },
+    "문서 검토" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Document review"
+          }
+        }
+      }
+    },
+    "간단한 수정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simple fixes"
+          }
+        }
+      }
+    },
+    "지난 %lld일 중 Pro 한도 초과일: %lld일. Pro 전환을 고려해보세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro limit exceeded %2$lld of %1$lld days. Consider switching to Pro."
+          }
+        }
+      }
+    },
+    "지난 %lld일 중 Pro 한도 초과일: %lld일. Max 유지를 추천합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro limit exceeded %2$lld of %1$lld days. Recommend keeping Max."
+          }
+        }
+      }
+    },
+    "잔여 %lld%%! 곧 rate limit에 걸립니다. 리셋까지 %lld분." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only %1$lld%% left! Rate limit approaching. %2$lld min until reset."
+          }
+        }
+      }
+    },
+    "5시간 한도 잔여 %lld%%. 리셋까지 %@시간 남았습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5-hour limit: %1$lld%% remaining. %2$@ hours until reset."
+          }
+        }
+      }
+    },
+    "7일 한도 잔여 %lld%%. 리셋까지 %lld일 남았어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-day limit: %1$lld%% remaining. %2$lld days until reset."
+          }
+        }
+      }
+    },
+    "%lld분 뒤 리셋인데 아직 %lld%%나 남았어요! 지금 쓰면 공짜예요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset in %1$lld min but %2$lld%% still unused! Use it now — it's free."
+          }
+        }
+      }
+    },
+    "7일 한도 리셋까지 %lld시간인데 %lld%%밖에 안 썼어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld hours until 7-day reset but only %2$lld%% used."
+          }
+        }
+      }
+    },
+    "간단한 작업은 Haiku로 처리하면 Opus 한도에 여유가 생겨요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use Haiku for simple tasks to save your Opus quota."
+          }
+        }
+      }
+    },
+    "%@에 몰아서 사용하시네요. 분산하면 rate limit 여유가 생겨요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heavy usage at %@. Spreading it out helps avoid rate limits."
+          }
+        }
+      }
+    },
+    "haru" : {
+      "shouldTranslate" : false
+    }
+  },
+  "version" : "1.0"
+}

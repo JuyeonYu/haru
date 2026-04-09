@@ -81,12 +81,12 @@ struct RateLimitCard: View {
 
     private func timeUntil(_ date: Date) -> String {
         let interval = date.timeIntervalSinceNow
-        if interval <= 0 { return "리셋 완료" }
+        if interval <= 0 { return String(localized: "리셋 완료") }
         let hours = Int(interval / 3600)
         let minutes = Int(interval.truncatingRemainder(dividingBy: 3600) / 60)
         if hours >= 24 {
-            return "\(hours / 24)일 \(hours % 24)시간 \(minutes)분 후"
+            return String(localized: "\(hours / 24)일 \(hours % 24)시간 \(minutes)분 후")
         }
-        return "\(hours)시간 \(minutes)분 후"
+        return String(localized: "\(hours)시간 \(minutes)분 후")
     }
 }

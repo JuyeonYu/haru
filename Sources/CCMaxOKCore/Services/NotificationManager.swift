@@ -42,7 +42,7 @@ public final class NotificationManager: NSObject, Sendable, UNUserNotificationCe
         guard try shouldSend(alert: alert) else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "CCMaxOK"
+        content.title = String(localized: "haru", bundle: .module)
         content.body = alert.message
         content.sound = .default
 

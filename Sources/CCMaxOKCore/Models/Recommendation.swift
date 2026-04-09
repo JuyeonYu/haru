@@ -18,31 +18,31 @@ public struct Recommendation: Sendable {
         if remainingPercentage > 50 {
             return Recommendation(
                 category: .highCapacity,
-                message: "여유가 많아요! 큰 작업을 하기 좋은 때예요.",
+                message: String(localized: "여유가 많아요! 큰 작업을 하기 좋은 때예요.", bundle: .module),
                 suggestions: [
-                    "프로젝트 리팩토링",
-                    "테스트 커버리지 올리기",
-                    "코드 문서화"
+                    String(localized: "프로젝트 리팩토링", bundle: .module),
+                    String(localized: "테스트 커버리지 올리기", bundle: .module),
+                    String(localized: "코드 문서화", bundle: .module)
                 ]
             )
         } else if remainingPercentage > 20 {
             return Recommendation(
                 category: .mediumCapacity,
-                message: "적당히 남았어요. 중간 규모 작업에 활용하세요.",
+                message: String(localized: "적당히 남았어요. 중간 규모 작업에 활용하세요.", bundle: .module),
                 suggestions: [
-                    "코드 리뷰",
-                    "버그 수정",
-                    "유닛 테스트 추가"
+                    String(localized: "코드 리뷰", bundle: .module),
+                    String(localized: "버그 수정", bundle: .module),
+                    String(localized: "유닛 테스트 추가", bundle: .module)
                 ]
             )
         } else {
             return Recommendation(
                 category: .lowCapacity,
-                message: "한도가 얼마 안 남았어요. 가볍게 사용하세요.",
+                message: String(localized: "한도가 얼마 안 남았어요. 가볍게 사용하세요.", bundle: .module),
                 suggestions: [
-                    "짧은 질문",
-                    "문서 검토",
-                    "간단한 수정"
+                    String(localized: "짧은 질문", bundle: .module),
+                    String(localized: "문서 검토", bundle: .module),
+                    String(localized: "간단한 수정", bundle: .module)
                 ]
             )
         }
@@ -72,9 +72,9 @@ public struct PlanInsight: Sendable {
 
         let summary: String
         if shouldSwitchToPro {
-            summary = "지난 \(totalDays)일 중 Pro 한도 초과일: \(proExceedDays)일. Pro 전환을 고려해보세요."
+            summary = String(localized: "지난 \(totalDays)일 중 Pro 한도 초과일: \(proExceedDays)일. Pro 전환을 고려해보세요.", bundle: .module)
         } else {
-            summary = "지난 \(totalDays)일 중 Pro 한도 초과일: \(proExceedDays)일. Max 유지를 추천합니다."
+            summary = String(localized: "지난 \(totalDays)일 중 Pro 한도 초과일: \(proExceedDays)일. Max 유지를 추천합니다.", bundle: .module)
         }
 
         return PlanInsight(

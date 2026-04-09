@@ -103,7 +103,7 @@ struct SettingsView: View {
 
                     Picker("문자 세트", selection: $blockFilled) {
                         ForEach(blockCharSets, id: \.filled) { set in
-                            Text(set.label).tag(set.filled)
+                            Text(LocalizedStringKey(set.label)).tag(set.filled)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -315,7 +315,7 @@ struct SettingsView: View {
         if blockShowPercent {
             result += " \(pct)%"
         }
-        return "미리보기: \(result)"
+        return String(localized: "미리보기: \(result)")
     }
 
 }

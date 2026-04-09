@@ -1,0 +1,620 @@
+{
+  "sourceLanguage" : "ko",
+  "strings" : {
+    "%@  %@" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@  %2$@"
+          }
+        }
+      }
+    },
+    "%@ · %lld%% 남음" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld%% 남음"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld%% 남음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%% remaining"
+          }
+        }
+      }
+    },
+    "%lld%% 남음 (rate)" : {
+      "comment" : "RateLimitCard remaining percentage",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%% remaining"
+          }
+        }
+      }
+    },
+    "%lld개의 얼굴이 감지되었습니다" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld face detected"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld faces detected"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld시간 %lld분 후" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %lldh %lldm"
+          }
+        }
+      }
+    },
+    "%lld일 / %lld일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld days"
+          }
+        }
+      }
+    },
+    "%lld일 %lld시간 %lld분 후" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %lldd %lldh %lldm"
+          }
+        }
+      }
+    },
+    "%lld칸" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld segments"
+          }
+        }
+      }
+    },
+    "❤️🤍 하트" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "❤️🤍 Heart"
+          }
+        }
+      }
+    },
+    "📸" : {
+
+    },
+    "🖼 커스텀" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🖼 Custom"
+          }
+        }
+      }
+    },
+    "🟩⬜ 컬러" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "🟩⬜ Color"
+          }
+        }
+      }
+    },
+    "5시간 세션" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5-Hour Session"
+          }
+        }
+      }
+    },
+    "7일 세션" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-Day Session"
+          }
+        }
+      }
+    },
+    "Block 옵션" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Block Options"
+          }
+        }
+      }
+    },
+    "Claude Code Usage Monitor" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code Usage Monitor"
+          }
+        }
+      }
+    },
+    "Claude Code 연결 안 됨" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claude Code Not Connected"
+          }
+        }
+      }
+    },
+    "Claude Code를 실행하면 자동으로 연결됩니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Launch Claude Code to connect automatically"
+          }
+        }
+      }
+    },
+    "haru" : {
+      "shouldTranslate" : false
+    },
+    "Max 유지 추천" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommend Keeping Max"
+          }
+        }
+      }
+    },
+    "Pro 전환 추천" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommend Switching to Pro"
+          }
+        }
+      }
+    },
+    "Pro 한도 초과일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Days Exceeding Pro Limit"
+          }
+        }
+      }
+    },
+    "Quit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit"
+          }
+        }
+      }
+    },
+    "Settings..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings..."
+          }
+        }
+      }
+    },
+    "Simple 옵션" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simple Options"
+          }
+        }
+      }
+    },
+    "거의 다 썼어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Almost used up"
+          }
+        }
+      }
+    },
+    "건너뛰기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        }
+      }
+    },
+    "괜찮아요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Looking good"
+          }
+        }
+      }
+    },
+    "둥근 사각형" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounded Rectangle"
+          }
+        }
+      }
+    },
+    "렌더러" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renderer"
+          }
+        }
+      }
+    },
+    "리셋" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        }
+      }
+    },
+    "리셋 시간 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Reset Time"
+          }
+        }
+      }
+    },
+    "리셋 완료" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Complete"
+          }
+        }
+      }
+    },
+    "마스크" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mask"
+          }
+        }
+      }
+    },
+    "메뉴바 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu Bar Display"
+          }
+        }
+      }
+    },
+    "메시지" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Messages"
+          }
+        }
+      }
+    },
+    "Support development" : {
+      "shouldTranslate" : false
+    },
+    "문자 세트" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Character Set"
+          }
+        }
+      }
+    },
+    "미리보기: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview: %@"
+          }
+        }
+      }
+    },
+    "사진 선택하기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Photo"
+          }
+        }
+      }
+    },
+    "사진 한 장으로\n나만의 메뉴바를 만들어보세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create your own menu bar\nwith just one photo"
+          }
+        }
+      }
+    },
+    "삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "세션" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sessions"
+          }
+        }
+      }
+    },
+    "아껴쓰세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use sparingly"
+          }
+        }
+      }
+    },
+    "얼굴 갤러리" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face Gallery"
+          }
+        }
+      }
+    },
+    "얼굴로 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show as Face"
+          }
+        }
+      }
+    },
+    "얼굴을 선택하세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a Face"
+          }
+        }
+      }
+    },
+    "없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "None"
+          }
+        }
+      }
+    },
+    "여유롭네요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plenty of capacity"
+          }
+        }
+      }
+    },
+    "오늘" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        }
+      }
+    },
+    "원형" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Circle"
+          }
+        }
+      }
+    },
+    "저장된 얼굴이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No saved faces"
+          }
+        }
+      }
+    },
+    "절반 지났어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Past halfway"
+          }
+        }
+      }
+    },
+    "추가..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add..."
+          }
+        }
+      }
+    },
+    "추천" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recommendation"
+          }
+        }
+      }
+    },
+    "취소" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "칸 수" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segments"
+          }
+        }
+      }
+    },
+    "토큰" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tokens"
+          }
+        }
+      }
+    },
+    "퍼센트 표시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Percentage"
+          }
+        }
+      }
+    },
+    "플랜 인사이트" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan Insight"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
