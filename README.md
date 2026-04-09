@@ -8,9 +8,9 @@ A macOS menu bar app that monitors your Claude Code usage in real-time.
 - **Custom Face Icon** — Use your face photo as the menu bar icon, with visual effects that change based on usage level
 - **Bilingual** — Korean and English supported
 
-## Screenshots
+## Screenshot
 
-<!-- Coming soon -->
+<img src="docs/screenshot.png" width="300" alt="haru popover">
 
 ## Installation
 
