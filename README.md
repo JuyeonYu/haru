@@ -16,12 +16,9 @@ A macOS menu bar app that monitors your Claude Code usage in real-time.
 |--------|-------|-------|------|
 | <img src="docs/screenshot-simple.png" height="28"> | <img src="docs/screenshot-block.png" height="28"> | <img src="docs/screenshot-heart.png" height="28"> | <img src="docs/screenshot-face.png" height="28"> |
 
-### Popover & Settings
+### Settings
 
-<p>
-  <img src="docs/screenshot.png" width="280" alt="haru popover">
-  <img src="docs/screenshot-settings.png" width="280" alt="haru settings">
-</p>
+<img src="docs/screenshot-settings.png" width="350" alt="haru settings">
 
 ## Installation
 
