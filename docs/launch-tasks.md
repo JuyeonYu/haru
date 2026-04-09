@@ -51,7 +51,7 @@ brew tap JuyeonYu/haru
 brew install --cask haru
 
 ### Manual Build
-git clone https://github.com/JuyeonYu/face_fuel.git
+git clone https://github.com/JuyeonYu/haru.git
 Xcode에서 ccmaxok.xcodeproj 열고 빌드
 
 ## Requirements

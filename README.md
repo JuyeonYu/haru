@@ -24,8 +24,8 @@ brew install --cask haru
 ### Build from Source
 
 ```bash
-git clone https://github.com/JuyeonYu/face_fuel.git
-cd face_fuel
+git clone https://github.com/JuyeonYu/haru.git
+cd haru
 open ccmaxok/ccmaxok.xcodeproj
 ```
 

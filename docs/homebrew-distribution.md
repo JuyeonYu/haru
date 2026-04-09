@@ -11,7 +11,7 @@
 | Sandbox | 비활성 (Homebrew Cask 배포에 적합) |
 | CI/CD | 미구성 |
 | Git Tag | 없음 |
-| GitHub | https://github.com/JuyeonYu/face_fuel |
+| GitHub | https://github.com/JuyeonYu/haru |
 
 ## 배포 흐름
 
@@ -197,10 +197,10 @@ cask "haru" do
   version "1.0.0"
   sha256 "PLACEHOLDER_SHA256"
 
-  url "https://github.com/JuyeonYu/face_fuel/releases/download/v#{version}/haru.zip"
+  url "https://github.com/JuyeonYu/haru/releases/download/v#{version}/haru.zip"
   name "haru"
   desc "Claude Code usage monitor for macOS menu bar"
-  homepage "https://github.com/JuyeonYu/face_fuel"
+  homepage "https://github.com/JuyeonYu/haru"
 
   depends_on macos: ">= :sequoia"
 
