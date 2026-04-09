@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var appState: AppState!
     private var statusBarController: StatusBarController!
     private var refreshObserver: NSObjectProtocol?
+    private var iconRefreshTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         appState = AppState()
@@ -32,10 +33,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // 파일 변경 시 아이콘 갱신
-        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        iconRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.statusBarController.updateIcon()
             }
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        iconRefreshTimer?.invalidate()
+        iconRefreshTimer = nil
+        if let refreshObserver {
+            NotificationCenter.default.removeObserver(refreshObserver)
         }
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import os
 
 public final class NotificationManager: NSObject, Sendable, UNUserNotificationCenterDelegate {
     private let database: DatabaseManager
@@ -9,15 +10,17 @@ public final class NotificationManager: NSObject, Sendable, UNUserNotificationCe
         self.database = database
         self.cooldownSeconds = cooldownSeconds
         super.init()
-        UNUserNotificationCenter.current().delegate = self
+        if Bundle.main.bundleIdentifier != nil {
+            UNUserNotificationCenter.current().delegate = self
+        }
     }
 
     public func requestPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error {
-                print("[CCMaxOK] Notification permission error: \(error)")
+                CCMaxOKCore.logger.error("Notification permission error: \(error.localizedDescription)")
             }
-            print("[CCMaxOK] Notification permission granted: \(granted)")
+            CCMaxOKCore.logger.info("Notification permission granted: \(granted)")
         }
     }
 

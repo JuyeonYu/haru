@@ -1,5 +1,6 @@
 import AppKit
 import Vision
+import os
 
 public enum FaceCropper {
 
@@ -17,7 +18,11 @@ public enum FaceCropper {
         // 1. 사람 얼굴 감지
         let faceRequest = VNDetectFaceRectanglesRequest()
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        try? handler.perform([faceRequest])
+        do {
+            try handler.perform([faceRequest])
+        } catch {
+            CCMaxOKCore.logger.warning("Face detection failed: \(error.localizedDescription)")
+        }
 
         let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
 
@@ -27,7 +32,11 @@ public enum FaceCropper {
 
         // 2. 동물 감지 (사람 없을 때)
         let animalRequest = VNRecognizeAnimalsRequest()
-        try? handler.perform([animalRequest])
+        do {
+            try handler.perform([animalRequest])
+        } catch {
+            CCMaxOKCore.logger.warning("Animal detection failed: \(error.localizedDescription)")
+        }
 
         if let results = animalRequest.results, !results.isEmpty {
             return results.compactMap { observation in
@@ -103,12 +112,11 @@ public enum FaceCropper {
 
     private static func applyMask(to image: NSImage, cornerRadius: CGFloat) -> NSImage {
         let size = image.size
-        let result = NSImage(size: size)
-        result.lockFocus()
-        let path = NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: cornerRadius, yRadius: cornerRadius)
-        path.addClip()
-        image.draw(in: NSRect(origin: .zero, size: size))
-        result.unlockFocus()
-        return result
+        return NSImage(size: size, flipped: false) { rect in
+            let path = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
+            path.addClip()
+            image.draw(in: rect)
+            return true
+        }
     }
 }

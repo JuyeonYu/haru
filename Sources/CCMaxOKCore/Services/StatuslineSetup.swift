@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 public enum StatuslineSetup {
 
@@ -25,7 +26,11 @@ public enum StatuslineSetup {
 
         // Also patch settings.json in other existing config directories
         for path in fileAccess.allSettingsPaths where path != fileAccess.settingsPath {
-            try? patchSingleSettings(at: path, fileAccess: fileAccess)
+            do {
+                try patchSingleSettings(at: path, fileAccess: fileAccess)
+            } catch {
+                CCMaxOKCore.logger.warning("Failed to patch settings at \(path.path()): \(error.localizedDescription)")
+            }
         }
     }
 
@@ -37,7 +42,11 @@ public enum StatuslineSetup {
 
             // 패치 전 백업
             let backupPath = settingsPath.deletingPathExtension().appendingPathExtension("json.backup")
-            try? data.write(to: backupPath, options: .atomic)
+            do {
+                try data.write(to: backupPath, options: .atomic)
+            } catch {
+                CCMaxOKCore.logger.warning("Settings backup failed at \(backupPath.path()): \(error.localizedDescription)")
+            }
 
             if let existing = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 settings = existing

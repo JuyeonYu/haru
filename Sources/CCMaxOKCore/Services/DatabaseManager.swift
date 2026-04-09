@@ -3,6 +3,7 @@ import SQLite
 
 public final class DatabaseManager: @unchecked Sendable {
     private let db: Connection
+    private let queue = DispatchQueue(label: "com.ccmaxok.database", qos: .utility)
 
     // MARK: - Tables
     // nonisolated(unsafe): SQLite.swift types are not Sendable but these are immutable constants
@@ -81,30 +82,34 @@ public final class DatabaseManager: @unchecked Sendable {
         timestamp: Double, fiveHourUsedPct: Double?, fiveHourResetsAt: Double?,
         sevenDayUsedPct: Double?, sevenDayResetsAt: Double?, model: String?
     ) throws {
-        try db.run(Self.rateLimitSnapshots.insert(
-            Self.rlTimestamp <- timestamp,
-            Self.rlFiveHourPct <- fiveHourUsedPct,
-            Self.rlFiveHourReset <- fiveHourResetsAt,
-            Self.rlSevenDayPct <- sevenDayUsedPct,
-            Self.rlSevenDayReset <- sevenDayResetsAt,
-            Self.rlModel <- model
-        ))
+        try queue.sync {
+            try db.run(Self.rateLimitSnapshots.insert(
+                Self.rlTimestamp <- timestamp,
+                Self.rlFiveHourPct <- fiveHourUsedPct,
+                Self.rlFiveHourReset <- fiveHourResetsAt,
+                Self.rlSevenDayPct <- sevenDayUsedPct,
+                Self.rlSevenDayReset <- sevenDayResetsAt,
+                Self.rlModel <- model
+            ))
+        }
     }
 
     public func rateLimitSnapshots(last n: Int) throws -> [RateLimitRow] {
-        try db.prepare(
-            Self.rateLimitSnapshots
-                .order(Self.rlTimestamp.desc)
-                .limit(n)
-        ).map { row in
-            RateLimitRow(
-                timestamp: row[Self.rlTimestamp],
-                fiveHourUsedPct: row[Self.rlFiveHourPct],
-                fiveHourResetsAt: row[Self.rlFiveHourReset],
-                sevenDayUsedPct: row[Self.rlSevenDayPct],
-                sevenDayResetsAt: row[Self.rlSevenDayReset],
-                model: row[Self.rlModel]
-            )
+        try queue.sync {
+            try db.prepare(
+                Self.rateLimitSnapshots
+                    .order(Self.rlTimestamp.desc)
+                    .limit(n)
+            ).map { row in
+                RateLimitRow(
+                    timestamp: row[Self.rlTimestamp],
+                    fiveHourUsedPct: row[Self.rlFiveHourPct],
+                    fiveHourResetsAt: row[Self.rlFiveHourReset],
+                    sevenDayUsedPct: row[Self.rlSevenDayPct],
+                    sevenDayResetsAt: row[Self.rlSevenDayReset],
+                    model: row[Self.rlModel]
+                )
+            }
         }
     }
 
@@ -112,56 +117,64 @@ public final class DatabaseManager: @unchecked Sendable {
 
     public func upsertDailyUsage(_ usage: DailyUsage) throws {
         let modelsJson = try String(data: JSONEncoder().encode(usage.modelsUsed), encoding: .utf8)
-        try db.run(Self.dailyUsageTable.insert(or: .replace,
-            Self.duDate <- usage.date,
-            Self.duSessionCount <- usage.sessionCount,
-            Self.duMessageCount <- usage.messageCount,
-            Self.duInputTokens <- usage.totalInputTokens,
-            Self.duOutputTokens <- usage.totalOutputTokens,
-            Self.duCacheReadTokens <- usage.totalCacheReadTokens,
-            Self.duCacheCreationTokens <- usage.totalCacheCreationTokens,
-            Self.duModelsUsed <- modelsJson
-        ))
+        try queue.sync {
+            try db.run(Self.dailyUsageTable.insert(or: .replace,
+                Self.duDate <- usage.date,
+                Self.duSessionCount <- usage.sessionCount,
+                Self.duMessageCount <- usage.messageCount,
+                Self.duInputTokens <- usage.totalInputTokens,
+                Self.duOutputTokens <- usage.totalOutputTokens,
+                Self.duCacheReadTokens <- usage.totalCacheReadTokens,
+                Self.duCacheCreationTokens <- usage.totalCacheCreationTokens,
+                Self.duModelsUsed <- modelsJson
+            ))
+        }
     }
 
     public func dailyUsage(from startDate: String, to endDate: String) throws -> [DailyUsage] {
-        try db.prepare(
-            Self.dailyUsageTable
-                .filter(Self.duDate >= startDate && Self.duDate <= endDate)
-                .order(Self.duDate.asc)
-        ).map { row in
-            let modelsJson = row[Self.duModelsUsed] ?? "[]"
-            let models = (try? JSONDecoder().decode([String].self, from: Data(modelsJson.utf8))) ?? []
-            return DailyUsage(
-                date: row[Self.duDate],
-                sessionCount: row[Self.duSessionCount],
-                messageCount: row[Self.duMessageCount],
-                totalInputTokens: row[Self.duInputTokens],
-                totalOutputTokens: row[Self.duOutputTokens],
-                totalCacheReadTokens: row[Self.duCacheReadTokens],
-                totalCacheCreationTokens: row[Self.duCacheCreationTokens],
-                modelsUsed: models
-            )
+        try queue.sync {
+            try db.prepare(
+                Self.dailyUsageTable
+                    .filter(Self.duDate >= startDate && Self.duDate <= endDate)
+                    .order(Self.duDate.asc)
+            ).map { row in
+                let modelsJson = row[Self.duModelsUsed] ?? "[]"
+                let models = (try? JSONDecoder().decode([String].self, from: Data(modelsJson.utf8))) ?? []
+                return DailyUsage(
+                    date: row[Self.duDate],
+                    sessionCount: row[Self.duSessionCount],
+                    messageCount: row[Self.duMessageCount],
+                    totalInputTokens: row[Self.duInputTokens],
+                    totalOutputTokens: row[Self.duOutputTokens],
+                    totalCacheReadTokens: row[Self.duCacheReadTokens],
+                    totalCacheCreationTokens: row[Self.duCacheCreationTokens],
+                    modelsUsed: models
+                )
+            }
         }
     }
 
     // MARK: - Notification Log
 
     public func logNotification(type: String, message: String) throws {
-        try db.run(Self.notificationLog.insert(
-            Self.nlTimestamp <- Date().timeIntervalSince1970,
-            Self.nlType <- type,
-            Self.nlMessage <- message
-        ))
+        try queue.sync {
+            try db.run(Self.notificationLog.insert(
+                Self.nlTimestamp <- Date().timeIntervalSince1970,
+                Self.nlType <- type,
+                Self.nlMessage <- message
+            ))
+        }
     }
 
     public func canSendNotification(type: String, cooldownSeconds: Double) throws -> Bool {
-        let cutoff = Date().timeIntervalSince1970 - cooldownSeconds
-        let count = try db.scalar(
-            Self.notificationLog
-                .filter(Self.nlType == type && Self.nlTimestamp > cutoff)
-                .count
-        )
-        return count == 0
+        try queue.sync {
+            let cutoff = Date().timeIntervalSince1970 - cooldownSeconds
+            let count = try db.scalar(
+                Self.notificationLog
+                    .filter(Self.nlType == type && Self.nlTimestamp > cutoff)
+                    .count
+            )
+            return count == 0
+        }
     }
 }

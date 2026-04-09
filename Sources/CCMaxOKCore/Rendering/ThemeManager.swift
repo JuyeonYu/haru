@@ -68,13 +68,13 @@ public final class ThemeManager: @unchecked Sendable {
     public func resizeForMenuBar(_ image: NSImage, height: CGFloat = 22) -> NSImage {
         let aspect = image.size.width / image.size.height
         let newSize = NSSize(width: height * aspect, height: height)
-        let resized = NSImage(size: newSize)
-        resized.lockFocus()
-        image.draw(in: NSRect(origin: .zero, size: newSize),
-                   from: NSRect(origin: .zero, size: image.size),
-                   operation: .sourceOver,
-                   fraction: 1.0)
-        resized.unlockFocus()
+        let resized = NSImage(size: newSize, flipped: false) { rect in
+            image.draw(in: rect,
+                       from: NSRect(origin: .zero, size: image.size),
+                       operation: .sourceOver,
+                       fraction: 1.0)
+            return true
+        }
         resized.isTemplate = false
         return resized
     }
@@ -83,13 +83,13 @@ public final class ThemeManager: @unchecked Sendable {
 
     /// opacity 적용
     public func applyOpacity(_ image: NSImage, opacity: CGFloat) -> NSImage {
-        let result = NSImage(size: image.size)
-        result.lockFocus()
-        image.draw(in: NSRect(origin: .zero, size: image.size),
-                   from: NSRect(origin: .zero, size: image.size),
-                   operation: .sourceOver,
-                   fraction: opacity)
-        result.unlockFocus()
+        let result = NSImage(size: image.size, flipped: false) { rect in
+            image.draw(in: rect,
+                       from: NSRect(origin: .zero, size: image.size),
+                       operation: .sourceOver,
+                       fraction: opacity)
+            return true
+        }
         result.isTemplate = false
         return result
     }
@@ -156,19 +156,19 @@ public final class ThemeManager: @unchecked Sendable {
         let cellSize = NSSize(width: height, height: height)
         let spacing: CGFloat = 2
         let totalWidth = CGFloat(segments) * (cellSize.width + spacing) - spacing
-        let result = NSImage(size: NSSize(width: totalWidth, height: height))
 
         let resized = resizeForMenuBar(image, height: height)
         let dimmed = applyOpacity(resized, opacity: 0.25)
 
-        result.lockFocus()
-        for i in 0..<segments {
-            let x = CGFloat(i) * (cellSize.width + spacing)
-            let rect = NSRect(origin: NSPoint(x: x, y: 0), size: cellSize)
-            let img = i < filledCount ? resized : dimmed
-            img.draw(in: rect)
+        let result = NSImage(size: NSSize(width: totalWidth, height: height), flipped: false) { _ in
+            for i in 0..<segments {
+                let x = CGFloat(i) * (cellSize.width + spacing)
+                let rect = NSRect(origin: NSPoint(x: x, y: 0), size: cellSize)
+                let img = i < filledCount ? resized : dimmed
+                img.draw(in: rect)
+            }
+            return true
         }
-        result.unlockFocus()
         result.isTemplate = false
         return result
     }

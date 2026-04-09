@@ -6,6 +6,7 @@ public final class FileWatcher: @unchecked Sendable {
     private var stream: FSEventStreamRef?
     private var timer: Timer?
     private let pollingInterval: TimeInterval
+    private let lock = NSLock()
 
     public init(
         watchPaths: [String],
@@ -18,7 +19,9 @@ public final class FileWatcher: @unchecked Sendable {
     }
 
     deinit {
-        stop()
+        stopFSEventsLocked()
+        timer?.invalidate()
+        timer = nil
     }
 
     public func start() {
@@ -26,25 +29,34 @@ public final class FileWatcher: @unchecked Sendable {
     }
 
     public func startPolling() {
-        stopFSEvents()
+        lock.lock()
+        stopFSEventsLocked()
+        lock.unlock()
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            self.lock.lock()
             self.timer = Timer.scheduledTimer(
                 withTimeInterval: self.pollingInterval,
                 repeats: true
             ) { [weak self] _ in
                 self?.onChange()
             }
+            self.lock.unlock()
         }
     }
 
     public func stop() {
-        stopFSEvents()
+        lock.lock()
+        defer { lock.unlock() }
+        stopFSEventsLocked()
         timer?.invalidate()
         timer = nil
     }
 
     private func startFSEvents() {
+        lock.lock()
+        defer { lock.unlock() }
+
         let pathsToWatch = watchPaths as CFArray
         var context = FSEventStreamContext()
         let unsafeSelf = Unmanaged.passUnretained(self).toOpaque()
@@ -71,7 +83,8 @@ public final class FileWatcher: @unchecked Sendable {
         FSEventStreamStart(stream)
     }
 
-    private func stopFSEvents() {
+    /// Must be called while `lock` is held
+    private func stopFSEventsLocked() {
         guard let stream else { return }
         FSEventStreamStop(stream)
         FSEventStreamInvalidate(stream)

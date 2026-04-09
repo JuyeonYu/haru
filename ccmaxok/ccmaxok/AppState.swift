@@ -1,6 +1,7 @@
 import Foundation
 import CCMaxOKCore
 import Observation
+import os
 
 @Observable
 @MainActor
@@ -47,14 +48,24 @@ final class AppState {
         let fa = FileAccessManager()
         self.fileAccess = fa
 
-        try? fa.ensureCCMaxOKDirectory()
+        do {
+            try fa.ensureCCMaxOKDirectory()
+        } catch {
+            CCMaxOKCore.logger.error("Failed to create ccmaxok directory: \(error.localizedDescription)")
+        }
 
-        if let db = try? DatabaseManager(path: fa.databasePath.path) {
-            self.database = db
+        do {
+            self.database = try DatabaseManager(path: fa.databasePath.path)
+        } catch {
+            CCMaxOKCore.logger.error("Failed to initialize database: \(error.localizedDescription)")
         }
 
         if !StatuslineSetup.isSetupComplete(fileAccess: fa) {
-            try? StatuslineSetup.setup(fileAccess: fa)
+            do {
+                try StatuslineSetup.setup(fileAccess: fa)
+            } catch {
+                CCMaxOKCore.logger.error("Statusline setup failed: \(error.localizedDescription)")
+            }
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
 
@@ -95,81 +106,97 @@ final class AppState {
     func refresh() {
         guard let fileAccess else { return }
 
-        let fm = FileManager.default
-        let claudeExists = !fileAccess.allClaudeDirectories.isEmpty
-        let statusExists = fm.fileExists(atPath: fileAccess.liveStatusPath.path)
+        let fa = fileAccess
+        let db = database
 
-        if let payload = try? UsageParser.parseStatuslinePayload(at: fileAccess.liveStatusPath) {
-            if let limits = payload.rateLimits {
-                connectionState = .connected
-                hasRateLimitsData = true
-                fiveHourUsedPct = limits.fiveHour.usedPercentage
-                fiveHourResetsAt = limits.fiveHour.resetDate
-                sevenDayUsedPct = limits.sevenDay.usedPercentage
-                sevenDayResetsAt = limits.sevenDay.resetDate
-                UserDefaults.standard.set(limits.fiveHour.usedPercentage, forKey: "ccmaxok_five_hour_used_pct")
+        Task.detached(priority: .utility) {
+            let claudeExists = !fa.allClaudeDirectories.isEmpty
+            let payload = try? UsageParser.parseStatuslinePayload(at: fa.liveStatusPath)
+            let cache = try? UsageParser.parseStatsCache(at: fa.statsCachePath)
+            let sessionStats = Self.computeSessionStats(fileAccess: fa)
 
-                try? database?.insertRateLimitSnapshot(
-                    timestamp: Date().timeIntervalSince1970,
-                    fiveHourUsedPct: limits.fiveHour.usedPercentage,
-                    fiveHourResetsAt: limits.fiveHour.resetsAt,
-                    sevenDayUsedPct: limits.sevenDay.usedPercentage,
-                    sevenDayResetsAt: limits.sevenDay.resetsAt,
-                    model: payload.model.id
-                )
+            let lastSnapshot: DatabaseManager.RateLimitRow? = {
+                guard payload?.rateLimits == nil else { return nil }
+                return (try? db?.rateLimitSnapshots(last: 1))?.first
+            }()
 
-            } else {
-                connectionState = .connectedNoLimits
-                hasRateLimitsData = false
-            }
-        } else {
-            hasRateLimitsData = false
-            if !claudeExists {
-                connectionState = .noClaudeDir
-            } else {
-                connectionState = .waitingFirstRun
-            }
-            // live-status 파싱 실패 시 DB에서 마지막 스냅샷 로드
-            if let last = try? database?.rateLimitSnapshots(last: 1).first {
-                fiveHourUsedPct = last.fiveHourUsedPct ?? 0
-                fiveHourResetsAt = Date(timeIntervalSince1970: last.fiveHourResetsAt ?? 0)
-                sevenDayUsedPct = last.sevenDayUsedPct ?? 0
-                sevenDayResetsAt = Date(timeIntervalSince1970: last.sevenDayResetsAt ?? 0)
-            }
-        }
-
-        // 오늘 세션/메시지 수를 JSONL 파일에서 집계
-        loadTodaySessionStats()
-
-        if let cache = try? UsageParser.parseStatsCache(at: fileAccess.statsCachePath) {
-            let calendar = Calendar.current
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy-MM-dd"
-            let today = Date()
-            let todayStr = fmt.string(from: today)
-
-            // 오늘 토큰 (stats-cache 기준, /usage와 동일 소스)
-            if let todayTokens = cache.modelTokens(for: todayStr) {
-                todayTotalTokens = todayTokens.values.reduce(0, +)
+            // DB 쓰기 (백그라운드)
+            if let limits = payload?.rateLimits, let model = payload?.model.id {
+                do {
+                    try db?.insertRateLimitSnapshot(
+                        timestamp: Date().timeIntervalSince1970,
+                        fiveHourUsedPct: limits.fiveHour.usedPercentage,
+                        fiveHourResetsAt: limits.fiveHour.resetsAt,
+                        sevenDayUsedPct: limits.sevenDay.usedPercentage,
+                        sevenDayResetsAt: limits.sevenDay.resetsAt,
+                        model: model
+                    )
+                } catch {
+                    CCMaxOKCore.logger.error("Failed to insert rate limit snapshot: \(error.localizedDescription)")
+                }
             }
 
-            // 이번 주 Sonnet 토큰
+            // 토큰 집계 (백그라운드)
+            var todayTokens = 0
             var sonnetTotal = 0
-            for dayOffset in 0..<7 {
-                guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
-                let dateStr = fmt.string(from: date)
-                if let modelTokens = cache.modelTokens(for: dateStr) {
-                    for (model, tokens) in modelTokens where model.lowercased().contains("sonnet") {
-                        sonnetTotal += tokens
+            if let cache {
+                let calendar = Calendar.current
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                let today = Date()
+                let todayStr = fmt.string(from: today)
+
+                if let tokens = cache.modelTokens(for: todayStr) {
+                    todayTokens = tokens.values.reduce(0, +)
+                }
+
+                for dayOffset in 0..<7 {
+                    guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
+                    let dateStr = fmt.string(from: date)
+                    if let modelTokens = cache.modelTokens(for: dateStr) {
+                        for (model, tokens) in modelTokens where model.lowercased().contains("sonnet") {
+                            sonnetTotal += tokens
+                        }
                     }
                 }
             }
-            weekSonnetTokens = sonnetTotal
+
+            // UI 업데이트 (메인 스레드)
+            await MainActor.run {
+                if let payload {
+                    if let limits = payload.rateLimits {
+                        self.connectionState = .connected
+                        self.hasRateLimitsData = true
+                        self.fiveHourUsedPct = limits.fiveHour.usedPercentage
+                        self.fiveHourResetsAt = limits.fiveHour.resetDate
+                        self.sevenDayUsedPct = limits.sevenDay.usedPercentage
+                        self.sevenDayResetsAt = limits.sevenDay.resetDate
+                        UserDefaults.standard.set(limits.fiveHour.usedPercentage, forKey: "ccmaxok_five_hour_used_pct")
+                    } else {
+                        self.connectionState = .connectedNoLimits
+                        self.hasRateLimitsData = false
+                    }
+                } else {
+                    self.hasRateLimitsData = false
+                    self.connectionState = claudeExists ? .waitingFirstRun : .noClaudeDir
+
+                    if let last = lastSnapshot {
+                        self.fiveHourUsedPct = last.fiveHourUsedPct ?? 0
+                        self.fiveHourResetsAt = Date(timeIntervalSince1970: last.fiveHourResetsAt ?? 0)
+                        self.sevenDayUsedPct = last.sevenDayUsedPct ?? 0
+                        self.sevenDayResetsAt = Date(timeIntervalSince1970: last.sevenDayResetsAt ?? 0)
+                    }
+                }
+
+                self.todaySessionCount = sessionStats.sessions
+                self.todayMessageCount = sessionStats.messages
+                self.todayTotalTokens = todayTokens
+                self.weekSonnetTokens = sonnetTotal
+            }
         }
     }
 
-    private func loadTodaySessionStats() {
-        guard let fileAccess else { return }
+    nonisolated private static func computeSessionStats(fileAccess: FileAccessManager) -> (sessions: Int, messages: Int) {
         let fm = FileManager.default
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -181,7 +208,6 @@ final class AppState {
             var messages = 0
 
             for fileURL in sessionFiles {
-                // 파일 수정일이 오늘인 것만 카운트
                 let attrs = try fm.attributesOfItem(atPath: fileURL.path)
                 guard let modDate = attrs[.modificationDate] as? Date,
                       formatter.string(from: modDate) == todayStr else { continue }
@@ -192,10 +218,10 @@ final class AppState {
                 messages += msgs.filter { $0.type == "user" }.count
             }
 
-            todaySessionCount = sessions
-            todayMessageCount = messages
+            return (sessions, messages)
         } catch {
-            // 파일 접근 실패 시 기존 값 유지
+            CCMaxOKCore.logger.warning("Failed to load today session stats: \(error.localizedDescription)")
+            return (0, 0)
         }
     }
 
