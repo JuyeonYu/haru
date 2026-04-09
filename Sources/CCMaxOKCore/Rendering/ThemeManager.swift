@@ -1,15 +1,24 @@
 import AppKit
+import CoreImage
 import Foundation
 
-public final class ThemeManager: Sendable {
+public final class ThemeManager: @unchecked Sendable {
     public static let shared = ThemeManager()
 
     private let themesDir: URL
+    private let imageCache = NSCache<NSString, NSImage>()
+    private let ciContext = CIContext()
 
     private init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         themesDir = appSupport.appendingPathComponent("CCMaxOK/themes", isDirectory: true)
         try? FileManager.default.createDirectory(at: themesDir, withIntermediateDirectories: true)
+        imageCache.countLimit = 50
+    }
+
+    /// 이미지 캐시를 무효화한다.
+    public func clearImageCache() {
+        imageCache.removeAllObjects()
     }
 
     // MARK: - 이미지 저장/로드
@@ -36,14 +45,21 @@ public final class ThemeManager: Sendable {
         return saveImage(image, name: "\(prefix)_\(timestamp)")
     }
 
-    /// 저장된 이미지를 로드한다.
+    /// 저장된 이미지를 로드한다 (캐시 사용).
     public func loadImage(named filename: String) -> NSImage? {
+        let key = filename as NSString
+        if let cached = imageCache.object(forKey: key) {
+            return cached
+        }
         let url = themesDir.appendingPathComponent(filename)
-        return NSImage(contentsOf: url)
+        guard let image = NSImage(contentsOf: url) else { return nil }
+        imageCache.setObject(image, forKey: key)
+        return image
     }
 
     /// 저장된 이미지를 삭제한다.
     public func deleteImage(named filename: String) {
+        imageCache.removeObject(forKey: filename as NSString)
         let url = themesDir.appendingPathComponent(filename)
         try? FileManager.default.removeItem(at: url)
     }
@@ -90,7 +106,6 @@ public final class ThemeManager: Sendable {
         filter.setValue(1.0, forKey: "inputIntensity")
 
         guard let output = filter.outputImage else { return image }
-        let ciContext = CIContext()
         guard let cgImage = ciContext.createCGImage(output, from: output.extent) else { return image }
 
         let result = NSImage(cgImage: cgImage, size: image.size)
@@ -109,7 +124,6 @@ public final class ThemeManager: Sendable {
         filter.setValue(amount, forKey: kCIInputBrightnessKey)
 
         guard let output = filter.outputImage else { return image }
-        let ciContext = CIContext()
         guard let cgImage = ciContext.createCGImage(output, from: output.extent) else { return image }
 
         let result = NSImage(cgImage: cgImage, size: image.size)
@@ -128,7 +142,6 @@ public final class ThemeManager: Sendable {
         filter.setValue(amount, forKey: kCIInputSaturationKey)
 
         guard let output = filter.outputImage else { return image }
-        let ciContext = CIContext()
         guard let cgImage = ciContext.createCGImage(output, from: output.extent) else { return image }
 
         let result = NSImage(cgImage: cgImage, size: image.size)
