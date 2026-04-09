@@ -24,8 +24,19 @@ struct SettingsView: View {
     @AppStorage("image_mask") private var imageMask = "circle"
     @AppStorage("seg_image_count") private var segImageCount = 10
 
+    // 얼굴 갤러리
+    @AppStorage("face_gallery") private var faceGalleryJSON = "[]"
+
     @State private var facePickerData: FacePickerData?
     @State private var pendingSlot: String = ""
+
+    private var faceGallery: [String] {
+        (try? JSONDecoder().decode([String].self, from: Data(faceGalleryJSON.utf8))) ?? []
+    }
+
+    private func setFaceGallery(_ gallery: [String]) {
+        faceGalleryJSON = (try? String(data: JSONEncoder().encode(gallery), encoding: .utf8)) ?? "[]"
+    }
 
     private let blockCharSets: [(filled: String, empty: String, label: String)] = [
         ("🟩", "⬜", "🟩⬜ 컬러"),
@@ -56,19 +67,17 @@ struct SettingsView: View {
 
             if rendererId == "simple" {
                 Section("Simple 옵션") {
-                    Picker("아이콘", selection: $simpleIcon) {
-                        ForEach(simpleIconOptions, id: \.icon) { opt in
-                            Text("\(opt.icon) \(opt.label)").tag(opt.icon)
-                        }
-                    }
-                    .onChange(of: simpleIcon) { _, _ in notifyRendererChanged() }
+//                    Picker("아이콘", selection: $simpleIcon) {
+//                        ForEach(simpleIconOptions, id: \.icon) { opt in
+//                            Text("\(opt.icon) \(opt.label)").tag(opt.icon)
+//                        }
+//                    }
+//                    .onChange(of: simpleIcon) { _, _ in notifyRendererChanged() }
 
-                    Toggle("커스텀 이미지 사용", isOn: $simpleUseCustomImage)
+                    Toggle("얼굴로 표시", isOn: $simpleUseCustomImage)
                         .onChange(of: simpleUseCustomImage) { _, _ in notifyRendererChanged() }
 
                     if simpleUseCustomImage {
-                        imageRow(label: "이미지", filename: imageHigh, slot: "high")
-
                         Picker("마스크", selection: $imageMask) {
                             Text("없음").tag("none")
                             Text("원형").tag("circle")
@@ -76,6 +85,8 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.segmented)
                         .onChange(of: imageMask) { _, _ in notifyRendererChanged() }
+
+                        faceGalleryView
                     }
                 }
             }
@@ -116,7 +127,6 @@ struct SettingsView: View {
 
                     if blockFilled == "__custom_image__" {
                         Divider()
-                        imageRow(label: "이미지", filename: imageHigh, slot: "high")
 
                         Picker("마스크", selection: $imageMask) {
                             Text("없음").tag("none")
@@ -125,6 +135,8 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.segmented)
                         .onChange(of: imageMask) { _, _ in notifyRendererChanged() }
+
+                        faceGalleryView
                     }
                 }
             }
@@ -182,51 +194,112 @@ struct SettingsView: View {
 
     private func saveImageToSlot(_ image: NSImage, slot: String) {
         let tm = ThemeManager.shared
-        let processed = image
-        guard let filename = tm.saveImage(processed, name: "user_\(slot)") else { return }
+        guard let filename = tm.saveImageUnique(image) else { return }
 
-        switch slot {
-        case "high": imageHigh = filename
-        case "mid": imageMid = filename
-        case "low": imageLow = filename
-        default: break
-        }
+        // 갤러리에 추가
+        var gallery = faceGallery
+        gallery.append(filename)
+        setFaceGallery(gallery)
 
+        // 활성 얼굴로 설정
+        imageHigh = filename
         notifyRendererChanged()
     }
 
     @ViewBuilder
-    private func imageRow(label: String, filename: String, slot: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer()
-            if !filename.isEmpty {
-                maskedThumbnail(filename: filename, height: 32)
+    private var faceGalleryView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("얼굴 갤러리")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("추가...") {
+                    pickAndSaveImage(slot: "high")
+                }
+                .controlSize(.small)
             }
-            Button(filename.isEmpty ? "선택..." : "변경...") {
-                pickAndSaveImage(slot: slot)
-            }
-            if !filename.isEmpty {
-                Button("삭제") {
-                    switch slot {
-                    case "high": imageHigh = ""
-                    case "mid": imageMid = ""
-                    case "low": imageLow = ""
-                    default: break
+
+            if faceGallery.isEmpty {
+                Text("저장된 얼굴이 없습니다")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(faceGallery, id: \.self) { filename in
+                            faceGalleryItem(filename: filename)
+                        }
                     }
-                    notifyRendererChanged()
                 }
             }
         }
     }
 
     @ViewBuilder
-    private func maskedThumbnail(filename: String, height: CGFloat) -> some View {
-        let mask = FaceCropper.MaskShape(rawValue: imageMask) ?? .none
-        if let img = ThemeManager.shared.loadImage(named: filename) {
-            let masked = FaceCropper.applyShapeMask(to: img, mask: mask)
-            let resized = ThemeManager.shared.resizeForMenuBar(masked, height: height)
-            Image(nsImage: resized)
+    private func faceGalleryItem(filename: String) -> some View {
+        let isSelected = imageHigh == filename
+        let remainPct = max(0, 100 - currentUsedPct)
+
+        Button {
+            imageHigh = filename
+            notifyRendererChanged()
+        } label: {
+            VStack(spacing: 4) {
+                if let img = ThemeManager.shared.loadImage(named: filename) {
+                    let effected = applyStatusEffect(to: img, remainPct: remainPct)
+                    let mask = FaceCropper.MaskShape(rawValue: imageMask) ?? .circle
+                    let masked = FaceCropper.applyShapeMask(to: effected, mask: mask)
+                    let resized = ThemeManager.shared.resizeForMenuBar(masked, height: 48)
+                    Image(nsImage: resized)
+                        .frame(width: 48, height: 48)
+                }
+            }
+            .padding(4)
+            .background(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button("삭제", role: .destructive) {
+                removeFace(filename: filename)
+            }
+        }
+    }
+
+    private func removeFace(filename: String) {
+        ThemeManager.shared.deleteImage(named: filename)
+        var gallery = faceGallery
+        gallery.removeAll { $0 == filename }
+        setFaceGallery(gallery)
+        if imageHigh == filename {
+            imageHigh = gallery.first ?? ""
+            notifyRendererChanged()
+        }
+    }
+
+    private var currentUsedPct: Double {
+        UserDefaults.standard.double(forKey: "ccmaxok_five_hour_used_pct")
+    }
+
+    private func applyStatusEffect(to image: NSImage, remainPct: Double) -> NSImage {
+        let tm = ThemeManager.shared
+        switch remainPct {
+        case 80...:
+            return tm.applyBrightness(image, amount: 0.05)
+        case 50..<80:
+            return image
+        case 20..<50:
+            return tm.applySaturation(image, amount: 0.5)
+        default:
+            let gray = tm.applyGrayscale(image)
+            return tm.applyOpacity(gray, opacity: 0.6)
         }
     }
 

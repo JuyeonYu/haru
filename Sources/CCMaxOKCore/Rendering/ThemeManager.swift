@@ -30,10 +30,22 @@ public final class ThemeManager: Sendable {
         }
     }
 
+    /// 고유 이름으로 이미지를 저장하고 파일명을 반환한다.
+    public func saveImageUnique(_ image: NSImage, prefix: String = "face") -> String? {
+        let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+        return saveImage(image, name: "\(prefix)_\(timestamp)")
+    }
+
     /// 저장된 이미지를 로드한다.
     public func loadImage(named filename: String) -> NSImage? {
         let url = themesDir.appendingPathComponent(filename)
         return NSImage(contentsOf: url)
+    }
+
+    /// 저장된 이미지를 삭제한다.
+    public func deleteImage(named filename: String) {
+        let url = themesDir.appendingPathComponent(filename)
+        try? FileManager.default.removeItem(at: url)
     }
 
     /// 메뉴바 크기(22pt)에 맞게 리사이즈한다.
