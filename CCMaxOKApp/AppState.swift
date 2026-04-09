@@ -9,6 +9,7 @@ final class AppState {
     var fiveHourResetsAt: Date = .distantFuture
     var sevenDayUsedPct: Double = 0
     var sevenDayResetsAt: Date = .distantFuture
+    var hasRateLimitsData: Bool = false
 
     var todaySessionCount: Int = 0
     var todayMessageCount: Int = 0
@@ -17,6 +18,12 @@ final class AppState {
     var recommendation: Recommendation?
     var planInsight: PlanInsight?
     var patternTips: [String] = []
+
+    var connectionState: ConnectionState = .noClaudeDir
+
+    var isConnected: Bool {
+        connectionState == .connected || connectionState == .connectedNoLimits
+    }
 
     var isSetupComplete: Bool = false
 
@@ -48,7 +55,19 @@ final class AppState {
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
 
-        let watcher = FileWatcher(watchPaths: [fa.ccmaxokDirectory.path]) { [weak self] in
+        var watchPaths = [fa.ccmaxokDirectory.path]
+        for dir in fa.allClaudeDirectories {
+            let dirPath = dir.path
+            if !watchPaths.contains(dirPath) {
+                watchPaths.append(dirPath)
+            }
+            let projectsPath = dir.appendingPathComponent("projects", isDirectory: true).path
+            if FileManager.default.fileExists(atPath: projectsPath) && !watchPaths.contains(projectsPath) {
+                watchPaths.append(projectsPath)
+            }
+        }
+
+        let watcher = FileWatcher(watchPaths: watchPaths) { [weak self] in
             Task { @MainActor in
                 self?.refresh()
             }
@@ -63,8 +82,12 @@ final class AppState {
     func refresh() {
         guard let fileAccess else { return }
 
+        let claudeExists = !fileAccess.allClaudeDirectories.isEmpty
+
         if let payload = try? UsageParser.parseStatuslinePayload(at: fileAccess.liveStatusPath) {
             if let limits = payload.rateLimits {
+                connectionState = .connected
+                hasRateLimitsData = true
                 fiveHourUsedPct = limits.fiveHour.usedPercentage
                 fiveHourResetsAt = limits.fiveHour.resetDate
                 sevenDayUsedPct = limits.sevenDay.usedPercentage
@@ -87,6 +110,16 @@ final class AppState {
                     remainingPercentage: limits.fiveHour.remainingPercentage,
                     hoursUntilReset: limits.fiveHour.timeUntilReset / 3600
                 )
+            } else {
+                connectionState = .connectedNoLimits
+                hasRateLimitsData = false
+            }
+        } else {
+            hasRateLimitsData = false
+            if !claudeExists {
+                connectionState = .noClaudeDir
+            } else {
+                connectionState = .waitingFirstRun
             }
         }
 
@@ -144,7 +177,14 @@ final class AppState {
     func switchToFSEvents() {
         fileWatcher?.stop()
         guard let fileAccess else { return }
-        let watcher = FileWatcher(watchPaths: [fileAccess.ccmaxokDirectory.path]) { [weak self] in
+        var watchPaths = [fileAccess.ccmaxokDirectory.path]
+        for dir in fileAccess.allClaudeDirectories {
+            let dirPath = dir.path
+            if !watchPaths.contains(dirPath) {
+                watchPaths.append(dirPath)
+            }
+        }
+        let watcher = FileWatcher(watchPaths: watchPaths) { [weak self] in
             Task { @MainActor in
                 self?.refresh()
             }

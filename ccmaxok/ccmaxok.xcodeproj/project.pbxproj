@@ -203,7 +203,7 @@
 			mainGroup = D6A6477A2F83968A00F1FE79;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				D6D833792F84A12700C48F1B /* XCLocalSwiftPackageReference "../../ccmaxok" */,
+				D6D833792F84A12700C48F1B /* XCLocalSwiftPackageReference ".." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D6A647842F83968A00F1FE79 /* Products */;
@@ -587,9 +587,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		D6D833792F84A12700C48F1B /* XCLocalSwiftPackageReference "../../ccmaxok" */ = {
+		D6D833792F84A12700C48F1B /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../ccmaxok;
+			relativePath = ..;
 		};
 /* End XCLocalSwiftPackageReference section */
 

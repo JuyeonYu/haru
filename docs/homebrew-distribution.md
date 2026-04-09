@@ -175,12 +175,15 @@ jobs:
 
 ### GitHub Secrets 설정 필요
 
-| Secret | 설명 |
-|--------|------|
-| `CERTIFICATE_P12` | Developer ID Application 인증서 (.p12 base64) |
-| `CERTIFICATE_PASSWORD` | .p12 파일 암호 |
-| `APPLE_ID` | Apple ID 이메일 |
-| `NOTARY_PASSWORD` | App Store Connect 앱 전용 암호 |
+| Secret | 설명 | 생성 방법 |
+|--------|------|----------|
+| `CERTIFICATE_P12` | Developer ID Application 인증서 base64 | Keychain Access → "Developer ID Application" 인증서 우클릭 → 내보내기 (.p12) → `base64 -i cert.p12 \| pbcopy` |
+| `CERTIFICATE_PASSWORD` | .p12 파일 암호 | 위 내보내기 시 설정한 암호 |
+| `APPLE_ID` | Apple ID 이메일 | Apple Developer 계정 이메일 |
+| `NOTARY_PASSWORD` | 공증용 앱 전용 암호 | [appleid.apple.com](https://appleid.apple.com) → 보안 → 앱 전용 암호 생성 |
+| `HOMEBREW_TAP_TOKEN` | homebrew-haru 저장소 push용 PAT | [github.com/settings/tokens](https://github.com/settings/tokens) → Fine-grained token → `homebrew-haru` repo에 Contents read/write 권한 |
+
+설정 위치: https://github.com/JuyeonYu/haru/settings/secrets/actions
 
 ## Step 4: Homebrew Tap 생성
 
@@ -236,11 +239,11 @@ brew install --cask haru
 
 ## Step 6: 사전 준비 체크리스트
 
-- [ ] Developer ID Application 인증서 발급 (Keychain에 설치)
-- [ ] App Store Connect 앱 전용 암호 생성
-- [ ] `scripts/build-release.sh`, `scripts/export-options.plist` 생성
-- [ ] 로컬에서 수동 빌드 → 서명 → 공증 테스트
-- [ ] GitHub Secrets 설정
-- [ ] `.github/workflows/release.yml` 추가
-- [ ] `homebrew-haru` 저장소 생성
-- [ ] `git tag v1.0.0` → 첫 릴리스 테스트
+- [x] Developer ID Application 인증서 발급 (Keychain에 설치)
+- [ ] App Store Connect 앱 전용 암호 생성 (appleid.apple.com → 앱 전용 암호)
+- [x] `scripts/build-release.sh`, `scripts/export-options.plist` 생성
+- [x] 로컬에서 수동 빌드 → 서명 → 공증 → 릴리스 완료 (v1.0.0, v1.1.0)
+- [ ] GitHub Secrets 5개 설정 (위 표 참조)
+- [x] `.github/workflows/release.yml` 추가
+- [x] GitHub에 `homebrew-haru` 저장소 생성 + Cask formula 배치 완료
+- [x] 수동 릴리스 테스트 완료 (v1.0.0, v1.1.0)

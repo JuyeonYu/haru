@@ -5,6 +5,7 @@ struct RateLimitCard: View {
     let fiveHourResetsAt: Date
     let sevenDayPct: Double
     let sevenDayResetsAt: Date
+    let hasData: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -27,14 +28,25 @@ struct RateLimitCard: View {
             HStack {
                 Text(label).font(.caption)
                 Spacer()
-                Text("\(Int(percentage))%")
-                    .font(.caption).fontWeight(.bold)
-                    .foregroundStyle(colorForPercentage(percentage))
+                if hasData {
+                    Text("\(Int(percentage))%")
+                        .font(.caption).fontWeight(.bold)
+                        .foregroundStyle(colorForPercentage(percentage))
+                } else {
+                    Text("—")
+                        .font(.caption).fontWeight(.bold)
+                        .foregroundStyle(.secondary)
+                }
             }
-            ProgressView(value: min(percentage, 100), total: 100)
-                .tint(colorForPercentage(percentage))
-            Text("리셋: \(timeUntil(resetsAt))")
-                .font(.caption2).foregroundStyle(.tertiary)
+            ProgressView(value: hasData ? min(percentage, 100) : 0, total: 100)
+                .tint(hasData ? colorForPercentage(percentage) : .secondary)
+            if hasData {
+                Text("리셋: \(timeUntil(resetsAt))")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            } else {
+                Text("데이터 없음")
+                    .font(.caption2).foregroundStyle(.tertiary)
+            }
         }
     }
 
@@ -45,6 +57,10 @@ struct RateLimitCard: View {
     }
 
     private func timeUntil(_ date: Date) -> String {
+        // Date.distantFuture인 경우 데이터 없음
+        if date == .distantFuture {
+            return "데이터 없음"
+        }
         let interval = date.timeIntervalSinceNow
         if interval <= 0 { return "리셋 완료" }
         let hours = Int(interval / 3600)

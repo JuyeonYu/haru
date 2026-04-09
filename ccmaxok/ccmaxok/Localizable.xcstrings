@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "—" : {
+
+    },
     "%@  %@" : {
       "localizations" : {
         "ko" : {
@@ -186,7 +189,11 @@
         }
       }
     },
+    "Claude Code 미설치" : {
+
+    },
     "Claude Code 연결 안 됨" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -196,7 +203,14 @@
         }
       }
     },
+    "Claude Code를 먼저 설치해주세요" : {
+
+    },
+    "Claude Code를 실행하면\n자동으로 데이터가 표시됩니다" : {
+
+    },
     "Claude Code를 실행하면 자동으로 연결됩니다" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -269,6 +283,9 @@
         }
       }
     },
+    "Support development" : {
+      "shouldTranslate" : false
+    },
     "거의 다 썼어요" : {
       "localizations" : {
         "en" : {
@@ -298,6 +315,12 @@
           }
         }
       }
+    },
+    "데이터 대기 중" : {
+
+    },
+    "데이터 없음" : {
+
     },
     "둥근 사각형" : {
       "localizations" : {
@@ -379,9 +402,6 @@
           }
         }
       }
-    },
-    "Support development" : {
-      "shouldTranslate" : false
     },
     "문자 세트" : {
       "localizations" : {
@@ -504,6 +524,9 @@
         }
       }
     },
+    "연결됨" : {
+
+    },
     "오늘" : {
       "localizations" : {
         "en" : {
@@ -614,6 +637,9 @@
           }
         }
       }
+    },
+    "현재 플랜에서는 rate limit 정보가\n제공되지 않을 수 있습니다" : {
+
     }
   },
   "version" : "1.0"

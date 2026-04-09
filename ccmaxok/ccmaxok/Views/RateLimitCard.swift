@@ -5,6 +5,7 @@ struct RateLimitCard: View {
     let fiveHourResetsAt: Date
     let sevenDayPct: Double
     let sevenDayResetsAt: Date
+    let hasData: Bool
 
     private static let fiveHourWindow: TimeInterval = 5 * 3600
     private static let sevenDayWindow: TimeInterval = 7 * 24 * 3600
@@ -42,24 +43,38 @@ struct RateLimitCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("\(Int(remainPct))% 남음")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(colorForRemaining(remainPct))
+                if hasData {
+                    Text("\(Int(remainPct))% 남음")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(colorForRemaining(remainPct))
+                } else {
+                    Text("—")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            ProgressView(value: remainPct, total: 100)
-                .tint(colorForRemaining(remainPct))
+            ProgressView(value: hasData ? remainPct : 0, total: 100)
+                .tint(hasData ? colorForRemaining(remainPct) : .secondary)
 
             HStack {
                 Text("리셋")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
-                Text(timeUntil(resetsAt))
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(colorForReset(elapsedPct))
+                if hasData {
+                    Text(timeUntil(resetsAt))
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(colorForReset(elapsedPct))
+                } else {
+                    Text("데이터 없음")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
         .padding(12)

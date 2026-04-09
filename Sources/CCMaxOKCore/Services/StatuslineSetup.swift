@@ -20,9 +20,18 @@ public enum StatuslineSetup {
     }
 
     public static func patchSettings(fileAccess: FileAccessManager) throws {
+        // Patch primary settings.json
+        try patchSingleSettings(at: fileAccess.settingsPath, fileAccess: fileAccess)
+
+        // Also patch settings.json in other existing config directories
+        for path in fileAccess.allSettingsPaths where path != fileAccess.settingsPath {
+            try? patchSingleSettings(at: path, fileAccess: fileAccess)
+        }
+    }
+
+    private static func patchSingleSettings(at settingsPath: URL, fileAccess: FileAccessManager) throws {
         var settings: [String: Any] = [:]
 
-        let settingsPath = fileAccess.settingsPath
         if FileManager.default.fileExists(atPath: settingsPath.path()) {
             let data = try Data(contentsOf: settingsPath)
 
@@ -58,15 +67,22 @@ public enum StatuslineSetup {
     public static func isSetupComplete(fileAccess: FileAccessManager) -> Bool {
         let fm = FileManager.default
         guard fm.fileExists(atPath: fileAccess.statuslineScriptPath.path()) else { return false }
-        guard fm.fileExists(atPath: fileAccess.settingsPath.path()) else { return false }
 
-        guard let data = try? Data(contentsOf: fileAccess.settingsPath),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let statusLine = json["statusLine"] as? [String: Any],
-              let command = statusLine["command"] as? String else {
-            return false
+        // Check if any settings.json has the statusline hook configured
+        let pathsToCheck = [fileAccess.settingsPath] + fileAccess.allSettingsPaths
+        for settingsPath in Set(pathsToCheck.map { $0.path }) {
+            let url = URL(fileURLWithPath: settingsPath)
+            guard let data = try? Data(contentsOf: url),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let statusLine = json["statusLine"] as? [String: Any],
+                  let command = statusLine["command"] as? String else {
+                continue
+            }
+            if command.contains("statusline.sh") {
+                return true
+            }
         }
-        return command.contains("statusline.sh")
+        return false
     }
 
     public static func setup(fileAccess: FileAccessManager) throws {
