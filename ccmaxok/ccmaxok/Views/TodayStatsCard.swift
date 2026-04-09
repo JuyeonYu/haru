@@ -4,7 +4,6 @@ struct TodayStatsCard: View {
     let sessions: Int
     let messages: Int
     let tokens: Int
-    let weekSonnetTokens: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -17,18 +16,6 @@ struct TodayStatsCard: View {
                 statItem(value: "\(messages)", label: "메시지")
                 Spacer()
                 statItem(value: formatTokens(tokens), label: "토큰")
-            }
-
-            Divider()
-
-            HStack {
-                Text("이번 주 (Sonnet)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(formatTokens(weekSonnetTokens))
-                    .font(.caption2)
-                    .fontWeight(.medium)
             }
         }
         .padding(12)

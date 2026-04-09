@@ -5,6 +5,12 @@ import UniformTypeIdentifiers
 struct MenuBarView: View {
     let state: AppState
 
+    @AppStorage("renderer_id") private var rendererId = "simple"
+    @AppStorage("simple_use_custom_image") private var simpleUseCustomImage = false
+    @AppStorage("block_filled_char") private var blockFilled = "■"
+    @AppStorage("image_high") private var imageHigh = ""
+    @AppStorage("image_mask") private var imageMask = "circle"
+
     var body: some View {
         VStack(spacing: 0) {
             profileHeader
@@ -12,43 +18,28 @@ struct MenuBarView: View {
 
             Divider()
 
-            ScrollView {
-                VStack(spacing: 10) {
-                    if !state.isConnected {
-                        VStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.title2)
-                                .foregroundStyle(.secondary)
-                            Text("Claude Code 연결 안 됨")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            Text("Claude Code를 실행하면 자동으로 연결됩니다")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                    } else {
-                        if shouldShowOnboarding {
-                            onboardingCard
-                        }
-
-                        RateLimitCard(
-                            fiveHourPct: state.fiveHourUsedPct,
-                            fiveHourResetsAt: state.fiveHourResetsAt,
-                            sevenDayPct: state.sevenDayUsedPct,
-                            sevenDayResetsAt: state.sevenDayResetsAt
-                        )
-
-                        TodayStatsCard(
-                            sessions: state.todaySessionCount,
-                            messages: state.todayMessageCount,
-                            tokens: state.todayTotalTokens,
-                            weekSonnetTokens: state.weekSonnetTokens
-                        )
-                    }
+            if !state.isConnected {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                    Text("Claude Code 연결 안 됨")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Text("Claude Code를 실행하면 자동으로 연결됩니다")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+            } else {
+                RateLimitCard(
+                    fiveHourPct: state.fiveHourUsedPct,
+                    fiveHourResetsAt: state.fiveHourResetsAt,
+                    sevenDayPct: state.sevenDayUsedPct,
+                    sevenDayResetsAt: state.sevenDayResetsAt
+                )
                 .padding(12)
             }
 
@@ -144,7 +135,14 @@ struct MenuBarView: View {
                 imageToSave = originalImage
             }
 
-            if let filename = ThemeManager.shared.saveImage(imageToSave, name: "user_high") {
+            if let filename = ThemeManager.shared.saveImageUnique(imageToSave) {
+                // 갤러리에 추가
+                let galleryJSON = UserDefaults.standard.string(forKey: "face_gallery") ?? "[]"
+                var gallery = (try? JSONDecoder().decode([String].self, from: Data(galleryJSON.utf8))) ?? []
+                gallery.append(filename)
+                if let data = try? JSONEncoder().encode(gallery), let json = String(data: data, encoding: .utf8) {
+                    UserDefaults.standard.set(json, forKey: "face_gallery")
+                }
                 UserDefaults.standard.set(filename, forKey: "image_high")
                 UserDefaults.standard.set(true, forKey: "simple_use_custom_image")
                 UserDefaults.standard.set(true, forKey: "onboarding_dismissed")
@@ -155,13 +153,13 @@ struct MenuBarView: View {
 
     @ViewBuilder
     private var profileHeader: some View {
-        let imageFile = UserDefaults.standard.string(forKey: "image_high") ?? ""
-        let useCustom = UserDefaults.standard.bool(forKey: "simple_use_custom_image")
+        let usesCustomImage = (rendererId == "simple" && simpleUseCustomImage)
+            || (rendererId == "block" && blockFilled == "__custom_image__")
         let remainPct = max(0, 100 - state.fiveHourUsedPct)
 
-        if useCustom && !imageFile.isEmpty,
-           let img = ThemeManager.shared.loadImage(named: imageFile) {
-            let mask = FaceCropper.MaskShape(rawValue: UserDefaults.standard.string(forKey: "image_mask") ?? "circle") ?? .circle
+        if usesCustomImage && !imageHigh.isEmpty,
+           let img = ThemeManager.shared.loadImage(named: imageHigh) {
+            let mask = FaceCropper.MaskShape(rawValue: imageMask) ?? .circle
             let masked = FaceCropper.applyShapeMask(to: img, mask: mask)
             let effected = applyStatusEffect(to: masked, remainPct: remainPct)
             let resized = ThemeManager.shared.resizeForMenuBar(effected, height: 48)
