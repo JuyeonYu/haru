@@ -14,11 +14,10 @@ A macOS menu bar app that monitors your Claude Code usage in real-time.
 
 ## Installation
 
-### Homebrew (coming soon)
+### Homebrew
 
 ```bash
-brew tap JuyeonYu/haru
-brew install --cask haru
+brew install --cask JuyeonYu/haru/haru
 ```
 
 ### Build from Source
