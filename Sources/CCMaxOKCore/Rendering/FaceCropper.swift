@@ -105,11 +105,9 @@ public enum FaceCropper {
         let size = image.size
         let result = NSImage(size: size)
         result.lockFocus()
-
         let path = NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: cornerRadius, yRadius: cornerRadius)
         path.addClip()
         image.draw(in: NSRect(origin: .zero, size: size))
-
         result.unlockFocus()
         return result
     }

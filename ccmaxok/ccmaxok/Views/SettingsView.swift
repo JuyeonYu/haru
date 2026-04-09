@@ -29,6 +29,7 @@ struct SettingsView: View {
 
     @State private var facePickerData: FacePickerData?
     @State private var pendingSlot: String = ""
+    @State private var thumbnailCache: [String: NSImage] = [:]
 
     private var faceGallery: [String] {
         (try? JSONDecoder().decode([String].self, from: Data(faceGalleryJSON.utf8))) ?? []
@@ -144,7 +145,8 @@ struct SettingsView: View {
 
         }
         .formStyle(.grouped)
-        .frame(width: 450, height: 500)
+        .frame(width: 450)
+        .frame(minHeight: 300, idealHeight: 500)
         .sheet(item: $facePickerData) { data in
             FacePickerSheet(candidates: data.candidates) { selected in
                 facePickerData = nil
@@ -155,42 +157,44 @@ struct SettingsView: View {
 
     private func pickAndSaveImage(slot: String) {
         DispatchQueue.main.async {
-            self._pickAndSaveImage(slot: slot)
+            let panel = NSOpenPanel()
+            panel.allowedContentTypes = [.png, .jpeg]
+            panel.allowsMultipleSelection = false
+            panel.canChooseDirectories = false
+            guard panel.runModal() == .OK, let url = panel.url,
+                  let originalImage = NSImage(contentsOf: url) else { return }
+            processPickedImage(originalImage, slot: slot)
         }
     }
 
-    private func _pickAndSaveImage(slot: String) {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.png, .jpeg]
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
+    private func processPickedImage(_ originalImage: NSImage, slot: String) {
+        Task.detached(priority: .userInitiated) {
+            let faces = FaceCropper.detectFaces(in: originalImage)
 
-        guard panel.runModal() == .OK, let url = panel.url,
-              let originalImage = NSImage(contentsOf: url) else { return }
-
-        let faces = FaceCropper.detectFaces(in: originalImage)
-
-        if faces.count > 1 {
-            // 얼굴 선택용 미리보기는 마스크 없이 크롭
-            let candidates = faces.compactMap { rect in
-                FaceCropper.cropFace(from: originalImage, faceRect: rect, mask: .none)
+            if faces.count > 1 {
+                let candidates = faces.compactMap { rect in
+                    FaceCropper.cropFace(from: originalImage, faceRect: rect, mask: .none)
+                }
+                if candidates.count > 1 {
+                    await MainActor.run {
+                        pendingSlot = slot
+                        facePickerData = FacePickerData(candidates: candidates)
+                    }
+                    return
+                }
             }
-            if candidates.count > 1 {
-                pendingSlot = slot
-                facePickerData = FacePickerData(candidates: candidates)
-                return
+
+            let imageToSave: NSImage
+            if let first = faces.first,
+               let cropped = FaceCropper.cropFace(from: originalImage, faceRect: first, mask: .none) {
+                imageToSave = cropped
+            } else {
+                imageToSave = originalImage
+            }
+            await MainActor.run {
+                saveImageToSlot(imageToSave, slot: slot)
             }
         }
-
-        // 0~1개 얼굴 또는 크롭 실패 → 마스크 없이 저장
-        let imageToSave: NSImage
-        if let first = faces.first,
-           let cropped = FaceCropper.cropFace(from: originalImage, faceRect: first, mask: .none) {
-            imageToSave = cropped
-        } else {
-            imageToSave = originalImage
-        }
-        saveImageToSlot(imageToSave, slot: slot)
     }
 
     private func saveImageToSlot(_ image: NSImage, slot: String) {
@@ -205,6 +209,7 @@ struct SettingsView: View {
         // 활성 얼굴로 설정
         imageHigh = filename
         notifyRendererChanged()
+        rebuildThumbnails()
     }
 
     @ViewBuilder
@@ -237,23 +242,24 @@ struct SettingsView: View {
                 }
             }
         }
+        .onAppear { rebuildThumbnails() }
+        .onChange(of: imageMask) { _, _ in rebuildThumbnails() }
     }
 
     @ViewBuilder
     private func faceGalleryItem(filename: String) -> some View {
         let isSelected = imageHigh == filename
-        let remainPct = max(0, 100 - currentUsedPct)
 
         Button {
             imageHigh = filename
             notifyRendererChanged()
         } label: {
             VStack(spacing: 4) {
-                if let img = ThemeManager.shared.loadImage(named: filename) {
-                    let effected = applyStatusEffect(to: img, remainPct: remainPct)
-                    let mask = FaceCropper.MaskShape(rawValue: imageMask) ?? .circle
-                    let masked = FaceCropper.applyShapeMask(to: effected, mask: mask)
-                    let resized = ThemeManager.shared.resizeForMenuBar(masked, height: 48)
+                if let cached = thumbnailCache[filename] {
+                    Image(nsImage: cached)
+                        .frame(width: 48, height: 48)
+                } else if let img = ThemeManager.shared.loadImage(named: filename) {
+                    let resized = ThemeManager.shared.resizeForMenuBar(img, height: 48)
                     Image(nsImage: resized)
                         .frame(width: 48, height: 48)
                 }
@@ -272,6 +278,22 @@ struct SettingsView: View {
                 removeFace(filename: filename)
             }
         }
+    }
+
+    private func rebuildThumbnails() {
+        let gallery = faceGallery
+        let remainPct = max(0, 100 - currentUsedPct)
+        let maskShape = FaceCropper.MaskShape(rawValue: imageMask) ?? .circle
+
+        var cache: [String: NSImage] = [:]
+        for filename in gallery {
+            guard let img = ThemeManager.shared.loadImage(named: filename) else { continue }
+            let effected = applyStatusEffect(to: img, remainPct: remainPct)
+            let masked = FaceCropper.applyShapeMask(to: effected, mask: maskShape)
+            let resized = ThemeManager.shared.resizeForMenuBar(masked, height: 48)
+            cache[filename] = resized
+        }
+        thumbnailCache = cache
     }
 
     private func removeFace(filename: String) {
