@@ -88,6 +88,7 @@ final class AppState {
                 fiveHourResetsAt = limits.fiveHour.resetDate
                 sevenDayUsedPct = limits.sevenDay.usedPercentage
                 sevenDayResetsAt = limits.sevenDay.resetDate
+                UserDefaults.standard.set(limits.fiveHour.usedPercentage, forKey: "ccmaxok_five_hour_used_pct")
 
                 try? database?.insertRateLimitSnapshot(
                     timestamp: Date().timeIntervalSince1970,
@@ -101,6 +102,13 @@ final class AppState {
             }
         } else {
             isConnected = claudeExists && statusExists
+            // live-status 파싱 실패 시 DB에서 마지막 스냅샷 로드
+            if let last = try? database?.rateLimitSnapshots(last: 1).first {
+                fiveHourUsedPct = last.fiveHourUsedPct ?? 0
+                fiveHourResetsAt = Date(timeIntervalSince1970: last.fiveHourResetsAt ?? 0)
+                sevenDayUsedPct = last.sevenDayUsedPct ?? 0
+                sevenDayResetsAt = Date(timeIntervalSince1970: last.sevenDayResetsAt ?? 0)
+            }
         }
 
         // 오늘 세션/메시지 수를 JSONL 파일에서 집계
