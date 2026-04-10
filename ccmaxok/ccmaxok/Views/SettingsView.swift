@@ -143,6 +143,22 @@ struct SettingsView: View {
                 }
             }
 
+            Section("정보") {
+                LabeledContent("버전") {
+                    Text("\(appVersion) (\(appBuild))")
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+                if let repoURL = URL(string: "https://github.com/JuyeonYu/haru") {
+                    Link(destination: repoURL) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "link")
+                            Text("GitHub")
+                        }
+                    }
+                }
+            }
+
         }
         .formStyle(.grouped)
         .frame(width: 450)
@@ -328,6 +344,14 @@ struct SettingsView: View {
 
     private func notifyRendererChanged() {
         NotificationCenter.default.post(name: .rendererSettingsChanged, object: nil)
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
 
     private var blockPreview: String {

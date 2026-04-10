@@ -24,6 +24,16 @@
         }
       }
     },
+    "%@ (%@)" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "%lld" : {
 
     },
@@ -110,6 +120,9 @@
           }
         }
       }
+    },
+    "© %@ Juyeon Yu · MIT License" : {
+
     },
     "❤️🤍 하트" : {
       "extractionState" : "stale",
@@ -220,8 +233,14 @@
         }
       }
     },
+    "GitHub" : {
+
+    },
     "haru" : {
       "shouldTranslate" : false
+    },
+    "macOS" : {
+
     },
     "Max 유지 추천" : {
       "localizations" : {
@@ -423,6 +442,12 @@
         }
       }
     },
+    "버전" : {
+
+    },
+    "번들 ID" : {
+
+    },
     "사진 선택하기" : {
       "localizations" : {
         "en" : {
@@ -473,6 +498,9 @@
           }
         }
       }
+    },
+    "앱" : {
+
     },
     "얼굴 갤러리" : {
       "localizations" : {
@@ -566,6 +594,9 @@
           }
         }
       }
+    },
+    "정보" : {
+
     },
     "추가..." : {
       "localizations" : {
