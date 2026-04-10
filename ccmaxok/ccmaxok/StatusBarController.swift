@@ -44,6 +44,8 @@ final class StatusBarController {
         if popover.isShown {
             popover.performClose(nil)
         } else if let button = statusItem.button {
+            // 팝오버를 여는 순간 강제 refresh — FSEvents가 놓친 변화도 즉시 반영
+            appState.refresh()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             NSApp.activate(ignoringOtherApps: true)
         }

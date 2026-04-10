@@ -69,24 +69,7 @@ final class AppState {
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
 
-        var watchPaths = [fa.ccmaxokDirectory.path]
-        // Watch all claude config directories for stats-cache.json and session changes
-        for dir in fa.allClaudeDirectories {
-            let dirPath = dir.path
-            if !watchPaths.contains(dirPath) {
-                watchPaths.append(dirPath)
-            }
-            let projectsPath = dir.appendingPathComponent("projects", isDirectory: true).path
-            if FileManager.default.fileExists(atPath: projectsPath) && !watchPaths.contains(projectsPath) {
-                watchPaths.append(projectsPath)
-            }
-        }
-
-        let watcher = FileWatcher(watchPaths: watchPaths) { [weak self] in
-            Task { @MainActor in
-                self?.refresh()
-            }
-        }
+        let watcher = makeFileWatcher(fileAccess: fa)
         self.fileWatcher = watcher
         watcher.start()
 
@@ -232,19 +215,45 @@ final class AppState {
     func switchToFSEvents() {
         fileWatcher?.stop()
         guard let fileAccess else { return }
+        let watcher = makeFileWatcher(fileAccess: fileAccess)
+        self.fileWatcher = watcher
+        watcher.start()
+    }
+
+    /// 시스템이 sleep에서 복귀했을 때 FileWatcher를 새로 만들고 refresh를 강제한다.
+    /// setup()은 DB 초기화·옵저버 등록 같은 1회성 작업을 포함하므로 재호출하지 않는다.
+    func handleSystemWake() {
+        guard let fileAccess else {
+            refresh()
+            return
+        }
+        fileWatcher?.stop()
+        let watcher = makeFileWatcher(fileAccess: fileAccess)
+        self.fileWatcher = watcher
+        watcher.start()
+        refresh()
+    }
+
+    private func buildWatchPaths(fileAccess: FileAccessManager) -> [String] {
         var watchPaths = [fileAccess.ccmaxokDirectory.path]
         for dir in fileAccess.allClaudeDirectories {
             let dirPath = dir.path
             if !watchPaths.contains(dirPath) {
                 watchPaths.append(dirPath)
             }
+            let projectsPath = dir.appendingPathComponent("projects", isDirectory: true).path
+            if FileManager.default.fileExists(atPath: projectsPath) && !watchPaths.contains(projectsPath) {
+                watchPaths.append(projectsPath)
+            }
         }
-        let watcher = FileWatcher(watchPaths: watchPaths) { [weak self] in
+        return watchPaths
+    }
+
+    private func makeFileWatcher(fileAccess: FileAccessManager) -> FileWatcher {
+        FileWatcher(watchPaths: buildWatchPaths(fileAccess: fileAccess)) { [weak self] in
             Task { @MainActor in
                 self?.refresh()
             }
         }
-        self.fileWatcher = watcher
-        watcher.start()
     }
 }
