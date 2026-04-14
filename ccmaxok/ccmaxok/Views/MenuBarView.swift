@@ -47,6 +47,12 @@ struct MenuBarView: View {
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
+                    Button("Re-setup") {
+                        state.retrySetup()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .font(.caption2)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)

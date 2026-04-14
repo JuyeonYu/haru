@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 public final class FileWatcher: @unchecked Sendable {
     private let watchPaths: [String]
@@ -7,6 +8,12 @@ public final class FileWatcher: @unchecked Sendable {
     private var timer: Timer?
     private let pollingInterval: TimeInterval
     private let lock = NSLock()
+
+    public var isUsingFSEvents: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return stream != nil
+    }
 
     public init(
         watchPaths: [String],
@@ -55,7 +62,6 @@ public final class FileWatcher: @unchecked Sendable {
 
     private func startFSEvents() {
         lock.lock()
-        defer { lock.unlock() }
 
         let pathsToWatch = watchPaths as CFArray
         var context = FSEventStreamContext()
@@ -76,11 +82,17 @@ public final class FileWatcher: @unchecked Sendable {
             FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
             0.5, // latency in seconds
             UInt32(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseCFTypes)
-        ) else { return }
+        ) else {
+            lock.unlock()
+            CCMaxOKCore.logger.error("FSEventStreamCreate failed for paths: \(self.watchPaths). Falling back to polling.")
+            startPolling()
+            return
+        }
 
         self.stream = stream
         FSEventStreamSetDispatchQueue(stream, DispatchQueue.main)
         FSEventStreamStart(stream)
+        lock.unlock()
     }
 
     /// Must be called while `lock` is held

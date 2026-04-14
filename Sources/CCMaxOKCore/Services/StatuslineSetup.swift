@@ -4,10 +4,7 @@ import os
 public enum StatuslineSetup {
 
     public static func deployScript(fileAccess: FileAccessManager) throws {
-        let scriptContent = """
-        #!/bin/bash
-        cat /dev/stdin > \(fileAccess.liveStatusPath.path())
-        """
+        let scriptContent = expectedScriptContent(fileAccess: fileAccess)
 
         try fileAccess.ensureCCMaxOKDirectory()
         let scriptPath = fileAccess.statuslineScriptPath
@@ -71,6 +68,23 @@ public enum StatuslineSetup {
             options: [.prettyPrinted, .sortedKeys]
         )
         try data.write(to: settingsPath, options: .atomic)
+    }
+
+    public static func expectedScriptContent(fileAccess: FileAccessManager) -> String {
+        """
+        #!/bin/bash
+        cat /dev/stdin > \(fileAccess.liveStatusPath.path())
+        """
+    }
+
+    public static func scriptNeedsUpdate(fileAccess: FileAccessManager) -> Bool {
+        let fm = FileManager.default
+        let scriptPath = fileAccess.statuslineScriptPath
+        guard fm.fileExists(atPath: scriptPath.path()) else { return true }
+
+        guard let current = try? String(contentsOf: scriptPath, encoding: .utf8) else { return true }
+        let expected = expectedScriptContent(fileAccess: fileAccess)
+        return current != expected
     }
 
     public static func isSetupComplete(fileAccess: FileAccessManager) -> Bool {

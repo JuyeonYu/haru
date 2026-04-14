@@ -66,8 +66,18 @@ final class AppState {
             } catch {
                 CCMaxOKCore.logger.error("Statusline setup failed: \(error.localizedDescription)")
             }
+        } else if StatuslineSetup.scriptNeedsUpdate(fileAccess: fa) {
+            do {
+                try StatuslineSetup.deployScript(fileAccess: fa)
+                CCMaxOKCore.logger.info("Statusline script updated to use absolute paths")
+            } catch {
+                CCMaxOKCore.logger.error("Statusline script update failed: \(error.localizedDescription)")
+            }
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
+
+        // 동기 초기 상태 로드 — StatusBarController.updateIcon() 호출 시점에 올바른 상태 반영
+        loadInitialState(fileAccess: fa)
 
         let watcher = makeFileWatcher(fileAccess: fa)
         self.fileWatcher = watcher
@@ -83,6 +93,23 @@ final class AppState {
             Task { @MainActor in
                 self?.renderVersion += 1
             }
+        }
+    }
+
+    private func loadInitialState(fileAccess fa: FileAccessManager) {
+        if let payload = try? UsageParser.parseStatuslinePayload(at: fa.liveStatusPath) {
+            if let limits = payload.rateLimits {
+                self.connectionState = .connected
+                self.hasRateLimitsData = true
+                self.fiveHourUsedPct = limits.fiveHour.usedPercentage
+                self.fiveHourResetsAt = limits.fiveHour.resetDate
+                self.sevenDayUsedPct = limits.sevenDay.usedPercentage
+                self.sevenDayResetsAt = limits.sevenDay.resetDate
+            } else {
+                self.connectionState = .connectedNoLimits
+            }
+        } else {
+            self.connectionState = fa.allClaudeDirectories.isEmpty ? .noClaudeDir : .waitingFirstRun
         }
     }
 
@@ -206,6 +233,18 @@ final class AppState {
             CCMaxOKCore.logger.warning("Failed to load today session stats: \(error.localizedDescription)")
             return (0, 0)
         }
+    }
+
+    func retrySetup() {
+        guard let fileAccess else { return }
+        do {
+            try StatuslineSetup.setup(fileAccess: fileAccess)
+            isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fileAccess)
+            CCMaxOKCore.logger.info("Manual re-setup completed")
+        } catch {
+            CCMaxOKCore.logger.error("Manual re-setup failed: \(error.localizedDescription)")
+        }
+        refresh()
     }
 
     func switchToPolling() {

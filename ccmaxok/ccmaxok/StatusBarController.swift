@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import CCMaxOKCore
+import os
 
 @MainActor
 final class StatusBarController {
@@ -13,6 +14,9 @@ final class StatusBarController {
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         self.popover = NSPopover()
 
+        if statusItem.button == nil {
+            CCMaxOKCore.logger.error("NSStatusItem created but button is nil — menu bar item may not be visible")
+        }
         setupPopover()
         updateIcon()
 
@@ -54,7 +58,10 @@ final class StatusBarController {
     // MARK: - Icon Rendering
 
     func updateIcon() {
-        guard let button = statusItem.button else { return }
+        guard let button = statusItem.button else {
+            CCMaxOKCore.logger.error("statusItem.button is nil — menu bar item may not be visible")
+            return
+        }
 
         // 이전 상태 클리어
         button.image = nil
@@ -62,11 +69,20 @@ final class StatusBarController {
         button.imagePosition = .imageLeading
 
         guard appState.isConnected else {
+            let stateText: String
+            switch appState.connectionState {
+            case .noClaudeDir:
+                stateText = "⬤ Setup"
+            case .waitingFirstRun:
+                stateText = "⬤ Waiting"
+            default:
+                stateText = "⬤ —"
+            }
             button.attributedTitle = NSAttributedString(
-                string: "⬤ —",
+                string: stateText,
                 attributes: [
                     .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular),
-                    .foregroundColor: NSColor.tertiaryLabelColor
+                    .foregroundColor: NSColor.secondaryLabelColor
                 ]
             )
             return
