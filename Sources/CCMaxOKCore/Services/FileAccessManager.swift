@@ -138,11 +138,13 @@ public final class FileAccessManager: Sendable {
                 var isDir: ObjCBool = false
                 guard fm.fileExists(atPath: child.path, isDirectory: &isDir), isDir.boolValue else { continue }
 
-                let decodedPath = "/" + child.lastPathComponent
-                    .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-                    .replacingOccurrences(of: "-", with: "/")
-                let projectURL = URL(fileURLWithPath: decodedPath, isDirectory: true)
-                guard fm.fileExists(atPath: projectURL.path) else { continue }
+                guard let projectURL = Self.resolveEncodedProjectPath(child.lastPathComponent) else {
+                    DiagnosticsLogger.shared.info(
+                        "projects",
+                        "encoded=\(child.lastPathComponent) could not be resolved to an existing path"
+                    )
+                    continue
+                }
 
                 let attrs = try? fm.attributesOfItem(atPath: child.path)
                 let mod = (attrs?[.modificationDate] as? Date) ?? .distantPast
@@ -161,6 +163,45 @@ public final class FileAccessManager: Sendable {
             }
             .prefix(limit)
             .map { $0 }
+    }
+
+    /// Claude Code는 프로젝트 cwd의 모든 `/`를 `-`로 치환해 디렉토리명으로 쓴다(`/Users/a/haru` → `-Users-a-haru`).
+    /// 실제 경로에 `-`가 포함된 경우(예: `/Users/me/my-proj/haru`) 나이브 역변환이 깨지므로,
+    /// 1차 나이브 시도가 실패하면 토큰을 greedy하게 합쳐 실제 존재하는 최장 경로를 찾는다.
+    /// 토큰 수 상한(20)을 두어 악성 입력을 방어한다.
+    static func resolveEncodedProjectPath(_ encoded: String) -> URL? {
+        let fm = FileManager.default
+        let trimmed = encoded.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        let tokens = trimmed.components(separatedBy: "-").filter { !$0.isEmpty }
+        // 실제 사용자 cwd 깊이는 보통 5~10 토큰. 상한 30은 UUID가 섞인 tmp 경로까지 커버.
+        guard !tokens.isEmpty, tokens.count <= 30 else { return nil }
+
+        // 1차: 모든 `-`를 `/`로 치환 (기존 동작)
+        let naive = URL(fileURLWithPath: "/" + tokens.joined(separator: "/"), isDirectory: true)
+        if fm.fileExists(atPath: naive.path) {
+            return naive
+        }
+
+        // 2차: greedy longest-existing-segment
+        var current = URL(fileURLWithPath: "/", isDirectory: true)
+        var i = 0
+        while i < tokens.count {
+            var chosen: (endIndex: Int, segment: String)?
+            var j = tokens.count
+            while j > i {
+                let segment = tokens[i..<j].joined(separator: "-")
+                let candidate = current.appendingPathComponent(segment, isDirectory: true)
+                if fm.fileExists(atPath: candidate.path) {
+                    chosen = (j, segment)
+                    break
+                }
+                j -= 1
+            }
+            guard let pick = chosen else { return nil }
+            current = current.appendingPathComponent(pick.segment, isDirectory: true)
+            i = pick.endIndex
+        }
+        return current
     }
 
     /// Find all .jsonl session files under all claude config directories' projects/
