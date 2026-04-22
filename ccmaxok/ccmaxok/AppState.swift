@@ -47,6 +47,11 @@ final class AppState {
 
     var statuslineConflicts: [StatuslineSetup.StatuslineConflict] = []
 
+    /// 로컬 SQLite(`history.sqlite`)를 열 수 없을 때 true. UI에 배지를 띄워
+    /// 사용자가 stale tier나 알림 히스토리 기능이 제한됨을 인지하게 한다.
+    var databaseUnavailable: Bool = false
+    var databaseErrorReason: String? = nil
+
     private var fileAccess: FileAccessManager?
     private var database: DatabaseManager?
     private var fileWatcher: FileWatcher?
@@ -76,7 +81,12 @@ final class AppState {
 
         do {
             self.database = try DatabaseManager(path: fa.databasePath.path)
+            self.databaseUnavailable = false
+            self.databaseErrorReason = nil
         } catch {
+            self.database = nil
+            self.databaseUnavailable = true
+            self.databaseErrorReason = error.localizedDescription
             DiagnosticsLogger.shared.error("app", "Failed to initialize database at \(fa.databasePath.path)", error: error)
         }
 

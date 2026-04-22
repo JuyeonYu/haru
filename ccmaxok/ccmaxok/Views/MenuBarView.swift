@@ -18,6 +18,10 @@ struct MenuBarView: View {
 
             Divider()
 
+            if state.databaseUnavailable {
+                databaseErrorBanner
+            }
+
             switch state.connectionState {
             case .noClaudeDir:
                 VStack(spacing: 8) {
@@ -331,6 +335,35 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
         }
+    }
+
+    private var databaseErrorBanner: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "externaldrive.badge.exclamationmark")
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+                Text("로컬 DB 접근 실패")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+            }
+            Text("히스토리·알림 기능이 제한됩니다. 실시간 사용량 표시는 계속 동작합니다.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let reason = state.databaseErrorReason {
+                Text(reason)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.red.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
     }
 
     private var conflictsBanner: some View {
