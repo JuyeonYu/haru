@@ -47,6 +47,10 @@ final class AppState {
 
     var statuslineConflicts: [StatuslineSetup.StatuslineConflict] = []
 
+    /// settings.json 패치 중 primary 외의 경로에서 실패한 항목들.
+    /// (CLAUDE_CONFIG_DIR에 여러 경로 지정 시 일부만 패치 성공한 경우 노출용)
+    var settingsPatchFailures: [StatuslineSetup.SettingsPatchFailure] = []
+
     /// 로컬 SQLite(`history.sqlite`)를 열 수 없을 때 true. UI에 배지를 띄워
     /// 사용자가 stale tier나 알림 히스토리 기능이 제한됨을 인지하게 한다.
     var databaseUnavailable: Bool = false
@@ -93,8 +97,9 @@ final class AppState {
 
         if !StatuslineSetup.isSetupComplete(fileAccess: fa) {
             do {
-                try StatuslineSetup.setup(fileAccess: fa)
-                DiagnosticsLogger.shared.info("setup", "Statusline hook installed")
+                let result = try StatuslineSetup.setup(fileAccess: fa)
+                self.settingsPatchFailures = result.failures
+                DiagnosticsLogger.shared.info("setup", "Statusline hook installed (patched \(result.succeeded.count), failed \(result.failures.count))")
             } catch {
                 DiagnosticsLogger.shared.error("setup", "Statusline setup failed", error: error)
             }
@@ -214,9 +219,10 @@ final class AppState {
     func retrySetup() {
         guard let fileAccess else { return }
         do {
-            try StatuslineSetup.setup(fileAccess: fileAccess)
+            let result = try StatuslineSetup.setup(fileAccess: fileAccess)
+            self.settingsPatchFailures = result.failures
             isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fileAccess)
-            DiagnosticsLogger.shared.info("setup", "Manual re-setup completed")
+            DiagnosticsLogger.shared.info("setup", "Manual re-setup completed (patched \(result.succeeded.count), failed \(result.failures.count))")
         } catch {
             DiagnosticsLogger.shared.error("setup", "Manual re-setup failed", error: error)
         }

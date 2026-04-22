@@ -17,18 +17,37 @@ public enum StatuslineSetup {
         )
     }
 
-    public static func patchSettings(fileAccess: FileAccessManager) throws {
-        // Patch primary settings.json
-        try patchSingleSettings(at: fileAccess.settingsPath, fileAccess: fileAccess)
+    public struct SettingsPatchFailure: Sendable, Equatable {
+        public let path: URL
+        public let reason: String
+    }
 
-        // Also patch settings.json in other existing config directories
+    public struct PatchResult: Sendable, Equatable {
+        public let succeeded: [URL]
+        public let failures: [SettingsPatchFailure]
+        public var hasFailures: Bool { !failures.isEmpty }
+    }
+
+    /// Primary settings.json 패치는 실패 시 throw(기존 동작 유지).
+    /// 보조 config 디렉토리(CLAUDE_CONFIG_DIR의 추가 경로 등) 패치 실패는 결과로 반환.
+    @discardableResult
+    public static func patchSettings(fileAccess: FileAccessManager) throws -> PatchResult {
+        var succeeded: [URL] = []
+        var failures: [SettingsPatchFailure] = []
+
+        try patchSingleSettings(at: fileAccess.settingsPath, fileAccess: fileAccess)
+        succeeded.append(fileAccess.settingsPath)
+
         for path in fileAccess.allSettingsPaths where path != fileAccess.settingsPath {
             do {
                 try patchSingleSettings(at: path, fileAccess: fileAccess)
+                succeeded.append(path)
             } catch {
+                failures.append(SettingsPatchFailure(path: path, reason: error.localizedDescription))
                 CCMaxOKCore.logger.warning("Failed to patch settings at \(path.path()): \(error.localizedDescription)")
             }
         }
+        return PatchResult(succeeded: succeeded, failures: failures)
     }
 
     private static func patchSingleSettings(at settingsPath: URL, fileAccess: FileAccessManager) throws {
@@ -71,9 +90,16 @@ public enum StatuslineSetup {
     }
 
     public static func expectedScriptContent(fileAccess: FileAccessManager) -> String {
-        """
+        // tmp 파일에 쓰고 mv로 교체 → haru가 쓰는 중인 파일을 읽어 JSON이 깨지는 경합을 제거.
+        // 비정상 종료 시에도 tmp 누적 방지 위해 EXIT trap 사용.
+        let finalPath = fileAccess.liveStatusPath.path()
+        return """
         #!/bin/bash
-        cat /dev/stdin > \(fileAccess.liveStatusPath.path())
+        set -e
+        tmp="\(finalPath).tmp.$$"
+        trap 'rm -f "$tmp"' EXIT
+        cat /dev/stdin > "$tmp"
+        mv -f "$tmp" "\(finalPath)"
         """
     }
 
@@ -108,9 +134,10 @@ public enum StatuslineSetup {
         return false
     }
 
-    public static func setup(fileAccess: FileAccessManager) throws {
+    @discardableResult
+    public static func setup(fileAccess: FileAccessManager) throws -> PatchResult {
         try deployScript(fileAccess: fileAccess)
-        try patchSettings(fileAccess: fileAccess)
+        return try patchSettings(fileAccess: fileAccess)
     }
 
     public struct StatuslineConflict: Sendable, Equatable {

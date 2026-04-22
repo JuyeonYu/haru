@@ -22,6 +22,10 @@ struct MenuBarView: View {
                 databaseErrorBanner
             }
 
+            if !state.settingsPatchFailures.isEmpty {
+                settingsPatchFailureBanner
+            }
+
             switch state.connectionState {
             case .noClaudeDir:
                 VStack(spacing: 8) {
@@ -335,6 +339,41 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
         }
+    }
+
+    private var settingsPatchFailureBanner: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                Text("일부 settings.json 패치 실패")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+            }
+            Text("다음 경로의 settings.json에 statusline 훅을 주입하지 못했습니다. 해당 설정 경로에서는 데이터가 들어오지 않을 수 있습니다.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(state.settingsPatchFailures.prefix(3), id: \.path) { f in
+                Text("· \(f.path.path)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            if state.settingsPatchFailures.count > 3 {
+                Text("· 외 \(state.settingsPatchFailures.count - 3)건")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
     }
 
     private var databaseErrorBanner: some View {
