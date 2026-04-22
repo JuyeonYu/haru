@@ -14,7 +14,7 @@ public enum UsageParser {
 
     public static func parseSessionFile(at url: URL) throws -> [SessionMessage] {
         let content = try String(contentsOf: url, encoding: .utf8)
-        return SessionMessage.parseJSONL(content)
+        return SessionMessage.parseJSONL(content, context: url.lastPathComponent)
     }
 
     public static func dailyUsageFromStatsCache(_ cache: StatsCache, date: String) -> DailyUsage {

@@ -5,6 +5,10 @@ import Foundation
 /// and records every attempt to `DiagnosticsLogger` so failures are debuggable.
 public enum UsageResolver {
 
+    /// DB 스냅샷이 이보다 오래되면 Tier 2를 신뢰할 수 없는 것으로 보고 Tier 3로 내려간다.
+    /// (5시간/7일 rate limit 창을 한참 벗어난 수치를 UI에 남기지 않기 위함.)
+    public static let staleThreshold: TimeInterval = 24 * 3600
+
     public struct Snapshot: Sendable, Equatable {
         public enum Freshness: Sendable, Equatable {
             case live
@@ -78,26 +82,37 @@ public enum UsageResolver {
         }
 
         // Tier 2: DB last snapshot
-        if let db = database,
-           let row = try? db.rateLimitSnapshots(last: 1).first {
-            let snap = Snapshot(
-                freshness: .stale(asOf: Date(timeIntervalSince1970: row.timestamp)),
-                fiveHourUsedPct: row.fiveHourUsedPct,
-                fiveHourResetsAt: row.fiveHourResetsAt.map { Date(timeIntervalSince1970: $0) },
-                sevenDayUsedPct: row.sevenDayUsedPct,
-                sevenDayResetsAt: row.sevenDayResetsAt.map { Date(timeIntervalSince1970: $0) },
-                todaySessionCount: stats.todaySessions,
-                todayMessageCount: stats.todayMessages,
-                todayTokens: stats.todayTokens,
-                weekSonnetTokens: stats.weekSonnetTokens,
-                model: row.model
-            )
-            logger.info("resolver", "Tier 2 (stale) resolved from DB snapshot dated \(Date(timeIntervalSince1970: row.timestamp))")
-            return .resolved(snap)
-        } else if database == nil {
-            logger.warn("resolver", "Tier 2 skipped — database is nil")
+        if let db = database {
+            do {
+                if let row = try db.rateLimitSnapshots(last: 1).first {
+                    let snapshotDate = Date(timeIntervalSince1970: row.timestamp)
+                    let age = now.timeIntervalSince(snapshotDate)
+                    if age > Self.staleThreshold {
+                        logger.info("resolver", "Tier 2 skipped — snapshot is \(Int(age / 3600))h old, beyond \(Int(Self.staleThreshold / 3600))h threshold")
+                    } else {
+                        let snap = Snapshot(
+                            freshness: .stale(asOf: snapshotDate),
+                            fiveHourUsedPct: row.fiveHourUsedPct,
+                            fiveHourResetsAt: row.fiveHourResetsAt.map { Date(timeIntervalSince1970: $0) },
+                            sevenDayUsedPct: row.sevenDayUsedPct,
+                            sevenDayResetsAt: row.sevenDayResetsAt.map { Date(timeIntervalSince1970: $0) },
+                            todaySessionCount: stats.todaySessions,
+                            todayMessageCount: stats.todayMessages,
+                            todayTokens: stats.todayTokens,
+                            weekSonnetTokens: stats.weekSonnetTokens,
+                            model: row.model
+                        )
+                        logger.info("resolver", "Tier 2 (stale) resolved from DB snapshot dated \(snapshotDate)")
+                        return .resolved(snap)
+                    }
+                } else {
+                    logger.info("resolver", "Tier 2 has no rows in rate_limit_snapshots")
+                }
+            } catch {
+                logger.warn("resolver", "Tier 2 DB query failed", error: error)
+            }
         } else {
-            logger.info("resolver", "Tier 2 has no rows in rate_limit_snapshots")
+            logger.warn("resolver", "Tier 2 skipped — database is nil")
         }
 
         // Tier 3: derived from stats-cache.json / session jsonl
@@ -149,9 +164,13 @@ public enum UsageResolver {
     ) -> Stats {
         let cache = tryParseStatsCache(fileAccess: fileAccess, logger: logger)
 
-        let calendar = Calendar.current
+        // 날짜 경계는 시스템 로컬 타임존 기준. 명시적으로 설정해 테스트·코드 리뷰에서 의도를 드러낸다.
+        var calendar = Calendar.current
+        calendar.timeZone = .current
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = .current
+        fmt.locale = Locale(identifier: "en_US_POSIX")
         let todayStr = fmt.string(from: now)
 
         var todayTokens = 0
@@ -207,7 +226,10 @@ public enum UsageResolver {
         logger: DiagnosticsLogger
     ) -> SessionScan {
         let fm = FileManager.default
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = .current
+        fmt.locale = Locale(identifier: "en_US_POSIX")
 
         do {
             let files = try fileAccess.sessionFiles()
@@ -222,7 +244,7 @@ public enum UsageResolver {
                 guard fmt.string(from: mod) == todayStr else { continue }
                 sessions += 1
                 if let content = try? String(contentsOf: url, encoding: .utf8) {
-                    let msgs = SessionMessage.parseJSONL(content)
+                    let msgs = SessionMessage.parseJSONL(content, context: url.lastPathComponent)
                     messages += msgs.filter { $0.type == "user" }.count
                 }
             }
