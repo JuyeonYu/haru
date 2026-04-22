@@ -24,10 +24,28 @@ final class AppState {
     var connectionState: ConnectionState = .noClaudeDir
 
     var isConnected: Bool {
-        connectionState == .connected || connectionState == .connectedNoLimits
+        switch connectionState {
+        case .connected, .connectedNoLimits, .stale, .derived:
+            return true
+        case .noClaudeDir, .waitingFirstRun:
+            return false
+        }
+    }
+
+    var isStale: Bool {
+        switch connectionState {
+        case .stale, .derived: return true
+        default: return false
+        }
+    }
+
+    var diagnosticErrorCount: Int {
+        DiagnosticsLogger.shared.errorCount
     }
 
     var isSetupComplete: Bool = false
+
+    var statuslineConflicts: [StatuslineSetup.StatuslineConflict] = []
 
     private var fileAccess: FileAccessManager?
     private var database: DatabaseManager?
@@ -45,33 +63,36 @@ final class AppState {
     }
 
     func setup() {
+        DiagnosticsLogger.shared.info("app", "Launching haru (core v\(CCMaxOKCore.version))")
+
         let fa = FileAccessManager()
         self.fileAccess = fa
 
         do {
             try fa.ensureCCMaxOKDirectory()
         } catch {
-            CCMaxOKCore.logger.error("Failed to create ccmaxok directory: \(error.localizedDescription)")
+            DiagnosticsLogger.shared.error("app", "Failed to create ccmaxok directory at \(fa.ccmaxokDirectory.path)", error: error)
         }
 
         do {
             self.database = try DatabaseManager(path: fa.databasePath.path)
         } catch {
-            CCMaxOKCore.logger.error("Failed to initialize database: \(error.localizedDescription)")
+            DiagnosticsLogger.shared.error("app", "Failed to initialize database at \(fa.databasePath.path)", error: error)
         }
 
         if !StatuslineSetup.isSetupComplete(fileAccess: fa) {
             do {
                 try StatuslineSetup.setup(fileAccess: fa)
+                DiagnosticsLogger.shared.info("setup", "Statusline hook installed")
             } catch {
-                CCMaxOKCore.logger.error("Statusline setup failed: \(error.localizedDescription)")
+                DiagnosticsLogger.shared.error("setup", "Statusline setup failed", error: error)
             }
         } else if StatuslineSetup.scriptNeedsUpdate(fileAccess: fa) {
             do {
                 try StatuslineSetup.deployScript(fileAccess: fa)
-                CCMaxOKCore.logger.info("Statusline script updated to use absolute paths")
+                DiagnosticsLogger.shared.info("setup", "Statusline script updated to use absolute paths")
             } catch {
-                CCMaxOKCore.logger.error("Statusline script update failed: \(error.localizedDescription)")
+                DiagnosticsLogger.shared.error("setup", "Statusline script update failed", error: error)
             }
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
@@ -97,141 +118,83 @@ final class AppState {
     }
 
     private func loadInitialState(fileAccess fa: FileAccessManager) {
-        if let payload = try? UsageParser.parseStatuslinePayload(at: fa.liveStatusPath) {
-            if let limits = payload.rateLimits {
-                self.connectionState = .connected
-                self.hasRateLimitsData = true
-                self.fiveHourUsedPct = limits.fiveHour.usedPercentage
-                self.fiveHourResetsAt = limits.fiveHour.resetDate
-                self.sevenDayUsedPct = limits.sevenDay.usedPercentage
-                self.sevenDayResetsAt = limits.sevenDay.resetDate
-            } else {
-                self.connectionState = .connectedNoLimits
-            }
-        } else {
-            self.connectionState = fa.allClaudeDirectories.isEmpty ? .noClaudeDir : .waitingFirstRun
-        }
+        let state = UsageResolver.resolve(fileAccess: fa, database: self.database)
+        apply(state: state)
     }
 
     func refresh() {
-        guard let fileAccess else { return }
+        guard let fileAccess else {
+            DiagnosticsLogger.shared.warn("app", "refresh() called before FileAccessManager is ready")
+            return
+        }
 
         let fa = fileAccess
         let db = database
 
         Task.detached(priority: .utility) {
-            let claudeExists = !fa.allClaudeDirectories.isEmpty
-            let payload = try? UsageParser.parseStatuslinePayload(at: fa.liveStatusPath)
-            let cache = try? UsageParser.parseStatsCache(at: fa.statsCachePath)
-            let sessionStats = Self.computeSessionStats(fileAccess: fa)
+            let state = UsageResolver.resolve(fileAccess: fa, database: db)
+            let conflicts = StatuslineSetup.projectLocalStatuslineConflicts(fileAccess: fa)
 
-            let lastSnapshot: DatabaseManager.RateLimitRow? = {
-                guard payload?.rateLimits == nil else { return nil }
-                return (try? db?.rateLimitSnapshots(last: 1))?.first
-            }()
-
-            // DB 쓰기 (백그라운드)
-            if let limits = payload?.rateLimits, let model = payload?.model.id {
+            // Persist live-only snapshots to the DB so the stale-fallback path has data later.
+            if case .resolved(let snap) = state,
+               snap.freshness == .live,
+               let fiveHourPct = snap.fiveHourUsedPct,
+               let sevenDayPct = snap.sevenDayUsedPct,
+               let fiveHourReset = snap.fiveHourResetsAt,
+               let sevenDayReset = snap.sevenDayResetsAt {
                 do {
                     try db?.insertRateLimitSnapshot(
                         timestamp: Date().timeIntervalSince1970,
-                        fiveHourUsedPct: limits.fiveHour.usedPercentage,
-                        fiveHourResetsAt: limits.fiveHour.resetsAt,
-                        sevenDayUsedPct: limits.sevenDay.usedPercentage,
-                        sevenDayResetsAt: limits.sevenDay.resetsAt,
-                        model: model
+                        fiveHourUsedPct: fiveHourPct,
+                        fiveHourResetsAt: fiveHourReset.timeIntervalSince1970,
+                        sevenDayUsedPct: sevenDayPct,
+                        sevenDayResetsAt: sevenDayReset.timeIntervalSince1970,
+                        model: snap.model
                     )
                 } catch {
-                    CCMaxOKCore.logger.error("Failed to insert rate limit snapshot: \(error.localizedDescription)")
+                    DiagnosticsLogger.shared.error("db", "Failed to insert rate limit snapshot", error: error)
                 }
             }
 
-            // 토큰 집계 (백그라운드)
-            var todayTokens = 0
-            var sonnetTotal = 0
-            if let cache {
-                let calendar = Calendar.current
-                let fmt = DateFormatter()
-                fmt.dateFormat = "yyyy-MM-dd"
-                let today = Date()
-                let todayStr = fmt.string(from: today)
-
-                if let tokens = cache.modelTokens(for: todayStr) {
-                    todayTokens = tokens.values.reduce(0, +)
-                }
-
-                for dayOffset in 0..<7 {
-                    guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: today) else { continue }
-                    let dateStr = fmt.string(from: date)
-                    if let modelTokens = cache.modelTokens(for: dateStr) {
-                        for (model, tokens) in modelTokens where model.lowercased().contains("sonnet") {
-                            sonnetTotal += tokens
-                        }
-                    }
-                }
-            }
-
-            // UI 업데이트 (메인 스레드)
             await MainActor.run {
-                if let payload {
-                    if let limits = payload.rateLimits {
-                        self.connectionState = .connected
-                        self.hasRateLimitsData = true
-                        self.fiveHourUsedPct = limits.fiveHour.usedPercentage
-                        self.fiveHourResetsAt = limits.fiveHour.resetDate
-                        self.sevenDayUsedPct = limits.sevenDay.usedPercentage
-                        self.sevenDayResetsAt = limits.sevenDay.resetDate
-                        UserDefaults.standard.set(limits.fiveHour.usedPercentage, forKey: "ccmaxok_five_hour_used_pct")
-                    } else {
-                        self.connectionState = .connectedNoLimits
-                        self.hasRateLimitsData = false
-                    }
-                } else {
-                    self.hasRateLimitsData = false
-                    self.connectionState = claudeExists ? .waitingFirstRun : .noClaudeDir
-
-                    if let last = lastSnapshot {
-                        self.fiveHourUsedPct = last.fiveHourUsedPct ?? 0
-                        self.fiveHourResetsAt = Date(timeIntervalSince1970: last.fiveHourResetsAt ?? 0)
-                        self.sevenDayUsedPct = last.sevenDayUsedPct ?? 0
-                        self.sevenDayResetsAt = Date(timeIntervalSince1970: last.sevenDayResetsAt ?? 0)
-                    }
-                }
-
-                self.todaySessionCount = sessionStats.sessions
-                self.todayMessageCount = sessionStats.messages
-                self.todayTotalTokens = todayTokens
-                self.weekSonnetTokens = sonnetTotal
+                self.apply(state: state)
+                self.statuslineConflicts = conflicts
             }
         }
     }
 
-    nonisolated private static func computeSessionStats(fileAccess: FileAccessManager) -> (sessions: Int, messages: Int) {
-        let fm = FileManager.default
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = formatter.string(from: Date())
+    private func apply(state: UsageResolver.State) {
+        switch state {
+        case .noClaudeDir:
+            self.connectionState = .noClaudeDir
+            self.hasRateLimitsData = false
 
-        do {
-            let sessionFiles = try fileAccess.sessionFiles()
-            var sessions = 0
-            var messages = 0
+        case .waitingFirstRun:
+            self.connectionState = .waitingFirstRun
+            self.hasRateLimitsData = false
 
-            for fileURL in sessionFiles {
-                let attrs = try fm.attributesOfItem(atPath: fileURL.path)
-                guard let modDate = attrs[.modificationDate] as? Date,
-                      formatter.string(from: modDate) == todayStr else { continue }
+        case .resolved(let snap):
+            self.fiveHourUsedPct = snap.fiveHourUsedPct ?? 0
+            self.fiveHourResetsAt = snap.fiveHourResetsAt ?? .distantFuture
+            self.sevenDayUsedPct = snap.sevenDayUsedPct ?? 0
+            self.sevenDayResetsAt = snap.sevenDayResetsAt ?? .distantFuture
+            self.hasRateLimitsData = snap.hasRateLimits
+            self.todaySessionCount = snap.todaySessionCount
+            self.todayMessageCount = snap.todayMessageCount
+            self.todayTotalTokens = snap.todayTokens
+            self.weekSonnetTokens = snap.weekSonnetTokens
 
-                sessions += 1
-                let content = try String(contentsOf: fileURL, encoding: .utf8)
-                let msgs = SessionMessage.parseJSONL(content)
-                messages += msgs.filter { $0.type == "user" }.count
+            switch snap.freshness {
+            case .live:
+                self.connectionState = snap.hasRateLimits ? .connected : .connectedNoLimits
+                if let pct = snap.fiveHourUsedPct {
+                    UserDefaults.standard.set(pct, forKey: "ccmaxok_five_hour_used_pct")
+                }
+            case .stale(let asOf):
+                self.connectionState = .stale(asOf: asOf)
+            case .derived(let asOf):
+                self.connectionState = .derived(asOf: asOf)
             }
-
-            return (sessions, messages)
-        } catch {
-            CCMaxOKCore.logger.warning("Failed to load today session stats: \(error.localizedDescription)")
-            return (0, 0)
         }
     }
 
@@ -240,9 +203,9 @@ final class AppState {
         do {
             try StatuslineSetup.setup(fileAccess: fileAccess)
             isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fileAccess)
-            CCMaxOKCore.logger.info("Manual re-setup completed")
+            DiagnosticsLogger.shared.info("setup", "Manual re-setup completed")
         } catch {
-            CCMaxOKCore.logger.error("Manual re-setup failed: \(error.localizedDescription)")
+            DiagnosticsLogger.shared.error("setup", "Manual re-setup failed", error: error)
         }
         refresh()
     }

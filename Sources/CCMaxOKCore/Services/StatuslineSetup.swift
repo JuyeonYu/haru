@@ -112,4 +112,46 @@ public enum StatuslineSetup {
         try deployScript(fileAccess: fileAccess)
         try patchSettings(fileAccess: fileAccess)
     }
+
+    public struct StatuslineConflict: Sendable, Equatable {
+        public let settingsPath: URL
+        public let projectPath: URL
+        public let overridingCommand: String
+    }
+
+    /// Scan recent project dirs (e.g. cmux worktrees) for local `.claude/settings*.json`
+    /// whose `statusLine.command` is set to something other than our ccmaxok script.
+    /// Such overrides silently prevent haru from receiving data for that project.
+    public static func projectLocalStatuslineConflicts(
+        fileAccess: FileAccessManager,
+        projectLimit: Int = 20
+    ) -> [StatuslineConflict] {
+        let ourScript = fileAccess.statuslineScriptPath.path
+        let fm = FileManager.default
+        var conflicts: [StatuslineConflict] = []
+
+        for project in fileAccess.recentProjectPaths(limit: projectLimit) {
+            let candidates = [
+                project.appendingPathComponent(".claude/settings.json"),
+                project.appendingPathComponent(".claude/settings.local.json")
+            ]
+            for settingsURL in candidates {
+                guard fm.fileExists(atPath: settingsURL.path),
+                      let data = try? Data(contentsOf: settingsURL),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let statusLine = json["statusLine"] as? [String: Any],
+                      let command = statusLine["command"] as? String
+                else { continue }
+
+                if command != ourScript && !command.contains("ccmaxok") {
+                    conflicts.append(StatuslineConflict(
+                        settingsPath: settingsURL,
+                        projectPath: project,
+                        overridingCommand: command
+                    ))
+                }
+            }
+        }
+        return conflicts
+    }
 }

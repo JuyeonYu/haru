@@ -75,7 +75,7 @@ final class StatusBarController {
                 stateText = "⬤ Setup"
             case .waitingFirstRun:
                 stateText = "⬤ Waiting"
-            default:
+            case .stale, .derived, .connected, .connectedNoLimits:
                 stateText = "⬤ —"
             }
             button.attributedTitle = NSAttributedString(
@@ -100,7 +100,11 @@ final class StatusBarController {
         case .text(let text):
             let fullText = text + resetSuffix
             let font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
-            let attributed = NSMutableAttributedString(string: fullText, attributes: [.font: font])
+            var baseAttrs: [NSAttributedString.Key: Any] = [.font: font]
+            if appState.isStale {
+                baseAttrs[.foregroundColor] = NSColor.secondaryLabelColor
+            }
+            let attributed = NSMutableAttributedString(string: fullText, attributes: baseAttrs)
 
             // Block 렌더러: 채움/빈칸 이모지 크기 균일화
             let emptyChar = UserDefaults.standard.string(forKey: "block_empty_char") ?? "□"
@@ -172,9 +176,11 @@ final class StatusBarController {
 
     private func alertColor() -> NSColor {
         let remainPct = max(0, 100 - appState.fiveHourUsedPct)
-        if remainPct <= 0 { return .systemRed }
-        if remainPct < 50 { return .systemYellow }
-        return .systemGreen
+        let base: NSColor
+        if remainPct <= 0 { base = .systemRed }
+        else if remainPct < 50 { base = .systemYellow }
+        else { base = .systemGreen }
+        return appState.isStale ? base.withAlphaComponent(0.55) : base
     }
 
     private func makeRenderContext() -> RenderContext {

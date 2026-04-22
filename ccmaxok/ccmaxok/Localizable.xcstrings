@@ -4,6 +4,15 @@
     "—" : {
 
     },
+    "· %@" : {
+
+    },
+    "· 외 %lld건" : {
+
+    },
+    "%@" : {
+
+    },
     "%@  %@" : {
       "localizations" : {
         "ko" : {
@@ -59,6 +68,16 @@
         }
       }
     },
+    "%lld개 · %lld메시지" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld개 · %2$lld메시지"
+          }
+        }
+      }
+    },
     "%lld개의 얼굴이 감지되었습니다" : {
       "localizations" : {
         "en" : {
@@ -80,6 +99,9 @@
           }
         }
       }
+    },
+    "%lld건" : {
+
     },
     "%lld시간 %lld분 후" : {
       "localizations" : {
@@ -120,9 +142,6 @@
           }
         }
       }
-    },
-    "© %@ Juyeon Yu · MIT License" : {
-
     },
     "❤️🤍 하트" : {
       "extractionState" : "stale",
@@ -219,9 +238,6 @@
     "Claude Code를 먼저 설치해주세요" : {
 
     },
-    "Claude Code를 실행하면\n자동으로 데이터가 표시됩니다" : {
-
-    },
     "Claude Code를 실행하면 자동으로 연결됩니다" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -233,13 +249,16 @@
         }
       }
     },
+    "Finder에서 열기" : {
+
+    },
     "GitHub" : {
 
     },
     "haru" : {
       "shouldTranslate" : false
     },
-    "macOS" : {
+    "haru는 Claude Code의 statusline 훅을 통해\n데이터를 받습니다. Claude Code를 한 번\n실행하면 자동으로 표시됩니다." : {
 
     },
     "Max 유지 추천" : {
@@ -281,6 +300,9 @@
           }
         }
       }
+    },
+    "Re-setup" : {
+
     },
     "Settings..." : {
       "localizations" : {
@@ -335,6 +357,9 @@
         }
       }
     },
+    "다음 프로젝트의 `.claude/settings.json`에서 statusline이 다른 스크립트로 설정되어 haru 데이터가 들어오지 않을 수 있습니다:" : {
+
+    },
     "데이터 대기 중" : {
 
     },
@@ -360,6 +385,12 @@
           }
         }
       }
+    },
+    "로그 복사" : {
+
+    },
+    "로그 파일" : {
+
     },
     "리셋" : {
       "localizations" : {
@@ -400,6 +431,9 @@
           }
         }
       }
+    },
+    "마지막 업데이트: %@ · Claude Code 실행 시 갱신" : {
+
     },
     "메뉴바 표시" : {
       "localizations" : {
@@ -443,9 +477,6 @@
       }
     },
     "버전" : {
-
-    },
-    "번들 ID" : {
 
     },
     "사진 선택하기" : {
@@ -498,9 +529,6 @@
           }
         }
       }
-    },
-    "앱" : {
-
     },
     "얼굴 갤러리" : {
       "localizations" : {
@@ -565,6 +593,12 @@
         }
       }
     },
+    "오늘 세션" : {
+
+    },
+    "오늘 토큰" : {
+
+    },
     "원형" : {
       "localizations" : {
         "en" : {
@@ -574,6 +608,12 @@
           }
         }
       }
+    },
+    "이번주 Sonnet" : {
+
+    },
+    "이슈 제출" : {
+
     },
     "저장된 얼굴이 없습니다" : {
       "localizations" : {
@@ -596,6 +636,15 @@
       }
     },
     "정보" : {
+
+    },
+    "지우기" : {
+
+    },
+    "진단" : {
+
+    },
+    "최근 경고·오류" : {
 
     },
     "추가..." : {
@@ -649,6 +698,9 @@
         }
       }
     },
+    "파생 데이터 · rate limit 없음 (기준: %@)" : {
+
+    },
     "퍼센트 표시" : {
       "localizations" : {
         "en" : {
@@ -658,6 +710,9 @@
           }
         }
       }
+    },
+    "프로젝트 로컬 statusline 감지됨" : {
+
     },
     "플랜 인사이트" : {
       "localizations" : {

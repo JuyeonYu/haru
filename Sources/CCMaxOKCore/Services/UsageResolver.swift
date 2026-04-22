@@ -1,0 +1,235 @@
+import Foundation
+
+/// Single source of truth for "what should the menu bar show right now?".
+/// Walks a fallback chain (live JSON → DB snapshot → stats-cache/projects derivation)
+/// and records every attempt to `DiagnosticsLogger` so failures are debuggable.
+public enum UsageResolver {
+
+    public struct Snapshot: Sendable, Equatable {
+        public enum Freshness: Sendable, Equatable {
+            case live
+            case stale(asOf: Date)
+            case derived(asOf: Date)
+        }
+
+        public let freshness: Freshness
+        public let fiveHourUsedPct: Double?
+        public let fiveHourResetsAt: Date?
+        public let sevenDayUsedPct: Double?
+        public let sevenDayResetsAt: Date?
+        public let todaySessionCount: Int
+        public let todayMessageCount: Int
+        public let todayTokens: Int
+        public let weekSonnetTokens: Int
+        public let model: String?
+
+        public var hasRateLimits: Bool {
+            fiveHourUsedPct != nil && sevenDayUsedPct != nil
+        }
+    }
+
+    public enum State: Sendable, Equatable {
+        case noClaudeDir
+        case waitingFirstRun
+        case resolved(Snapshot)
+    }
+
+    public struct Stats: Sendable, Equatable {
+        public let todaySessions: Int
+        public let todayMessages: Int
+        public let todayTokens: Int
+        public let weekSonnetTokens: Int
+        public let latestActivity: Date?
+    }
+
+    public static func resolve(
+        fileAccess: FileAccessManager,
+        database: DatabaseManager?,
+        logger: DiagnosticsLogger = .shared,
+        now: Date = Date()
+    ) -> State {
+        guard !fileAccess.allClaudeDirectories.isEmpty else {
+            logger.info("resolver", "No Claude config directory found under ~/.claude, ~/.config/claude, or CLAUDE_CONFIG_DIR")
+            return .noClaudeDir
+        }
+
+        let stats = computeStats(fileAccess: fileAccess, logger: logger)
+
+        // Tier 1: live-status.json
+        if let payload = tryParseLive(fileAccess: fileAccess, logger: logger) {
+            let limits = payload.rateLimits
+            if limits == nil {
+                logger.info("resolver", "live-status.json has no rateLimits field (plan likely does not expose them)")
+            }
+            let snap = Snapshot(
+                freshness: .live,
+                fiveHourUsedPct: limits?.fiveHour.usedPercentage,
+                fiveHourResetsAt: limits?.fiveHour.resetDate,
+                sevenDayUsedPct: limits?.sevenDay.usedPercentage,
+                sevenDayResetsAt: limits?.sevenDay.resetDate,
+                todaySessionCount: stats.todaySessions,
+                todayMessageCount: stats.todayMessages,
+                todayTokens: stats.todayTokens,
+                weekSonnetTokens: stats.weekSonnetTokens,
+                model: payload.model.id
+            )
+            logger.debug("resolver", "Tier 1 (live) resolved — limits=\(limits != nil ? "yes" : "no")")
+            return .resolved(snap)
+        }
+
+        // Tier 2: DB last snapshot
+        if let db = database,
+           let row = try? db.rateLimitSnapshots(last: 1).first {
+            let snap = Snapshot(
+                freshness: .stale(asOf: Date(timeIntervalSince1970: row.timestamp)),
+                fiveHourUsedPct: row.fiveHourUsedPct,
+                fiveHourResetsAt: row.fiveHourResetsAt.map { Date(timeIntervalSince1970: $0) },
+                sevenDayUsedPct: row.sevenDayUsedPct,
+                sevenDayResetsAt: row.sevenDayResetsAt.map { Date(timeIntervalSince1970: $0) },
+                todaySessionCount: stats.todaySessions,
+                todayMessageCount: stats.todayMessages,
+                todayTokens: stats.todayTokens,
+                weekSonnetTokens: stats.weekSonnetTokens,
+                model: row.model
+            )
+            logger.info("resolver", "Tier 2 (stale) resolved from DB snapshot dated \(Date(timeIntervalSince1970: row.timestamp))")
+            return .resolved(snap)
+        } else if database == nil {
+            logger.warn("resolver", "Tier 2 skipped — database is nil")
+        } else {
+            logger.info("resolver", "Tier 2 has no rows in rate_limit_snapshots")
+        }
+
+        // Tier 3: derived from stats-cache.json / session jsonl
+        if stats.todayTokens > 0 || stats.todaySessions > 0 || stats.weekSonnetTokens > 0 {
+            let asOf = stats.latestActivity ?? now
+            let snap = Snapshot(
+                freshness: .derived(asOf: asOf),
+                fiveHourUsedPct: nil,
+                fiveHourResetsAt: nil,
+                sevenDayUsedPct: nil,
+                sevenDayResetsAt: nil,
+                todaySessionCount: stats.todaySessions,
+                todayMessageCount: stats.todayMessages,
+                todayTokens: stats.todayTokens,
+                weekSonnetTokens: stats.weekSonnetTokens,
+                model: nil
+            )
+            logger.info("resolver", "Tier 3 (derived) resolved — tokens=\(stats.todayTokens), sessions=\(stats.todaySessions)")
+            return .resolved(snap)
+        }
+
+        logger.warn("resolver", "All tiers exhausted — entering waitingFirstRun")
+        return .waitingFirstRun
+    }
+
+    // MARK: - Helpers
+
+    private static func tryParseLive(
+        fileAccess: FileAccessManager,
+        logger: DiagnosticsLogger
+    ) -> StatuslinePayload? {
+        let url = fileAccess.liveStatusPath
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            logger.info("resolver", "Tier 1 skipped — \(url.path) does not exist")
+            return nil
+        }
+        do {
+            return try UsageParser.parseStatuslinePayload(at: url)
+        } catch {
+            logger.warn("resolver", "Tier 1 failed to parse live-status.json at \(url.path)", error: error)
+            return nil
+        }
+    }
+
+    public static func computeStats(
+        fileAccess: FileAccessManager,
+        logger: DiagnosticsLogger = .shared,
+        now: Date = Date()
+    ) -> Stats {
+        let cache = tryParseStatsCache(fileAccess: fileAccess, logger: logger)
+
+        let calendar = Calendar.current
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        let todayStr = fmt.string(from: now)
+
+        var todayTokens = 0
+        var sonnetTotal = 0
+        if let cache {
+            if let tokens = cache.modelTokens(for: todayStr) {
+                todayTokens = tokens.values.reduce(0, +)
+            }
+            for dayOffset in 0..<7 {
+                guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
+                let dateStr = fmt.string(from: date)
+                if let modelTokens = cache.modelTokens(for: dateStr) {
+                    for (model, tokens) in modelTokens where model.lowercased().contains("sonnet") {
+                        sonnetTotal += tokens
+                    }
+                }
+            }
+        }
+
+        let sessionInfo = scanSessionFiles(fileAccess: fileAccess, todayStr: todayStr, logger: logger)
+
+        return Stats(
+            todaySessions: sessionInfo.sessions,
+            todayMessages: sessionInfo.messages,
+            todayTokens: todayTokens,
+            weekSonnetTokens: sonnetTotal,
+            latestActivity: sessionInfo.latestMod
+        )
+    }
+
+    private static func tryParseStatsCache(
+        fileAccess: FileAccessManager,
+        logger: DiagnosticsLogger
+    ) -> StatsCache? {
+        let url = fileAccess.statsCachePath
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            logger.debug("resolver", "stats-cache.json not present at \(url.path)")
+            return nil
+        }
+        do {
+            return try UsageParser.parseStatsCache(at: url)
+        } catch {
+            logger.warn("resolver", "Failed to parse stats-cache.json", error: error)
+            return nil
+        }
+    }
+
+    private struct SessionScan { let sessions: Int; let messages: Int; let latestMod: Date? }
+
+    private static func scanSessionFiles(
+        fileAccess: FileAccessManager,
+        todayStr: String,
+        logger: DiagnosticsLogger
+    ) -> SessionScan {
+        let fm = FileManager.default
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+
+        do {
+            let files = try fileAccess.sessionFiles()
+            var sessions = 0
+            var messages = 0
+            var latest: Date?
+
+            for url in files {
+                let attrs = try fm.attributesOfItem(atPath: url.path)
+                guard let mod = attrs[.modificationDate] as? Date else { continue }
+                if latest == nil || mod > latest! { latest = mod }
+                guard fmt.string(from: mod) == todayStr else { continue }
+                sessions += 1
+                if let content = try? String(contentsOf: url, encoding: .utf8) {
+                    let msgs = SessionMessage.parseJSONL(content)
+                    messages += msgs.filter { $0.type == "user" }.count
+                }
+            }
+            return SessionScan(sessions: sessions, messages: messages, latestMod: latest)
+        } catch {
+            logger.warn("resolver", "Failed to enumerate session jsonl files", error: error)
+            return SessionScan(sessions: 0, messages: 0, latestMod: nil)
+        }
+    }
+}

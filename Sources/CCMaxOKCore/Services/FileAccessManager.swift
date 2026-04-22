@@ -117,6 +117,52 @@ public final class FileAccessManager: Sendable {
         )
     }
 
+    /// Recent project working directories reconstructed from `~/.claude/projects/` subdirectory names.
+    /// Claude Code encodes each project's cwd by replacing `/` with `-` (e.g. `/Users/a/haru` → `-Users-a-haru`).
+    /// Returns URLs in descending modification-date order (most recently active first), deduplicated, existing dirs only.
+    public func recentProjectPaths(limit: Int) -> [URL] {
+        let fm = FileManager.default
+        var entries: [(url: URL, mod: Date)] = []
+
+        for dir in allClaudeDirectories {
+            let projectsDir = dir.appendingPathComponent("projects", isDirectory: true)
+            guard fm.fileExists(atPath: projectsDir.path),
+                  let children = try? fm.contentsOfDirectory(
+                      at: projectsDir,
+                      includingPropertiesForKeys: [.isDirectoryKey, .contentModificationDateKey],
+                      options: [.skipsHiddenFiles]
+                  )
+            else { continue }
+
+            for child in children {
+                var isDir: ObjCBool = false
+                guard fm.fileExists(atPath: child.path, isDirectory: &isDir), isDir.boolValue else { continue }
+
+                let decodedPath = "/" + child.lastPathComponent
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+                    .replacingOccurrences(of: "-", with: "/")
+                let projectURL = URL(fileURLWithPath: decodedPath, isDirectory: true)
+                guard fm.fileExists(atPath: projectURL.path) else { continue }
+
+                let attrs = try? fm.attributesOfItem(atPath: child.path)
+                let mod = (attrs?[.modificationDate] as? Date) ?? .distantPast
+                entries.append((projectURL, mod))
+            }
+        }
+
+        var seen = Set<String>()
+        return entries
+            .sorted { $0.mod > $1.mod }
+            .compactMap { entry in
+                let key = entry.url.path
+                guard !seen.contains(key) else { return nil }
+                seen.insert(key)
+                return entry.url
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     /// Find all .jsonl session files under all claude config directories' projects/
     public func sessionFiles() throws -> [URL] {
         let fm = FileManager.default

@@ -159,6 +159,55 @@ struct SettingsView: View {
                 }
             }
 
+            Section("진단") {
+                LabeledContent("최근 경고·오류") {
+                    Text("\(DiagnosticsLogger.shared.errorCount)건")
+                        .foregroundStyle(DiagnosticsLogger.shared.errorCount > 0 ? .orange : .secondary)
+                        .monospacedDigit()
+                }
+                LabeledContent("로그 파일") {
+                    Text(DiagnosticsLogger.shared.logFileURL.path)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                }
+                HStack {
+                    Button {
+                        NSWorkspace.shared.activateFileViewerSelecting([DiagnosticsLogger.shared.logFileURL])
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "folder")
+                            Text("Finder에서 열기")
+                        }
+                    }
+                    Button {
+                        copyLogToClipboard()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "doc.on.doc")
+                            Text("로그 복사")
+                        }
+                    }
+                    Button {
+                        openGithubIssueWithDiagnostics()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "ladybug")
+                            Text("이슈 제출")
+                        }
+                    }
+                    Spacer()
+                    Button("지우기", role: .destructive) {
+                        DiagnosticsLogger.shared.clear()
+                    }
+                    .controlSize(.small)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
         }
         .formStyle(.grouped)
         .frame(width: 450)
@@ -352,6 +401,52 @@ struct SettingsView: View {
 
     private var appBuild: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    }
+
+    private func copyLogToClipboard() {
+        let lines = DiagnosticsLogger.shared.recentEntries(limit: 500)
+        let header = diagnosticsHeader()
+        let body = lines.isEmpty ? "(로그가 비어 있습니다)" : lines.joined(separator: "\n")
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString("\(header)\n\n\(body)", forType: .string)
+    }
+
+    private func openGithubIssueWithDiagnostics() {
+        let title = "[bug] 사용량 표시 문제"
+        let lines = DiagnosticsLogger.shared.recentEntries(limit: 40)
+        let logBlock = lines.isEmpty ? "(로그가 비어 있습니다)" : lines.joined(separator: "\n")
+        let body = """
+        \(diagnosticsHeader())
+
+        **증상 / 재현 방법**
+
+        (여기에 메뉴바·팝업에서 관찰된 현상을 적어주세요)
+
+        **최근 로그 (\(lines.count)줄)**
+
+        ```
+        \(logBlock)
+        ```
+        """
+        var components = URLComponents(string: "https://github.com/JuyeonYu/haru/issues/new")!
+        components.queryItems = [
+            URLQueryItem(name: "title", value: title),
+            URLQueryItem(name: "body", value: body)
+        ]
+        if let url = components.url {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func diagnosticsHeader() -> String {
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        let osStr = "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+        return """
+        **버전**: \(appVersion) (\(appBuild)) · core \(CCMaxOKCore.version)
+        **macOS**: \(osStr)
+        **로그 경로**: `\(DiagnosticsLogger.shared.logFileURL.path)`
+        """
     }
 
     private var blockPreview: String {

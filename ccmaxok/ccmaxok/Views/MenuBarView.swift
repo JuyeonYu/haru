@@ -43,7 +43,7 @@ struct MenuBarView: View {
                     Text("데이터 대기 중")
                         .font(.caption)
                         .fontWeight(.medium)
-                    Text("Claude Code를 실행하면\n자동으로 데이터가 표시됩니다")
+                    Text("haru는 Claude Code의 statusline 훅을 통해\n데이터를 받습니다. Claude Code를 한 번\n실행하면 자동으로 표시됩니다.")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                         .multilineTextAlignment(.center)
@@ -53,9 +53,80 @@ struct MenuBarView: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .font(.caption2)
+
+                    if !state.statuslineConflicts.isEmpty {
+                        conflictsBanner
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
+
+            case .stale(let asOf):
+                VStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("마지막 업데이트: \(staleRelativeLabel(asOf)) · Claude Code 실행 시 갱신")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+
+                    RateLimitCard(
+                        fiveHourPct: state.fiveHourUsedPct,
+                        fiveHourResetsAt: state.fiveHourResetsAt,
+                        sevenDayPct: state.sevenDayUsedPct,
+                        sevenDayResetsAt: state.sevenDayResetsAt,
+                        hasData: state.hasRateLimitsData
+                    )
+                    .padding(12)
+                    .opacity(0.75)
+                }
+
+            case .derived(let asOf):
+                VStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chart.bar.xaxis")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("파생 데이터 · rate limit 없음 (기준: \(staleRelativeLabel(asOf)))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text("오늘 세션")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(state.todaySessionCount)개 · \(state.todayMessageCount)메시지")
+                                .font(.caption)
+                        }
+                        HStack {
+                            Text("오늘 토큰")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(state.todayTotalTokens.formatted())")
+                                .font(.caption)
+                        }
+                        HStack {
+                            Text("이번주 Sonnet")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(state.weekSonnetTokens.formatted())")
+                                .font(.caption)
+                        }
+                    }
+                    .padding(12)
+                    .opacity(0.85)
+                }
 
             case .connectedNoLimits:
                 VStack(spacing: 8) {
@@ -260,6 +331,47 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
         }
+    }
+
+    private var conflictsBanner: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                Text("프로젝트 로컬 statusline 감지됨")
+                    .font(.caption2)
+                    .fontWeight(.medium)
+            }
+            Text("다음 프로젝트의 `.claude/settings.json`에서 statusline이 다른 스크립트로 설정되어 haru 데이터가 들어오지 않을 수 있습니다:")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(state.statuslineConflicts.prefix(3), id: \.settingsPath) { c in
+                Text("· \(c.projectPath.lastPathComponent)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            if state.statuslineConflicts.count > 3 {
+                Text("· 외 \(state.statuslineConflicts.count - 3)건")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 12)
+    }
+
+    private func staleRelativeLabel(_ date: Date) -> String {
+        let fmt = RelativeDateTimeFormatter()
+        fmt.unitsStyle = .short
+        fmt.locale = Locale.current
+        return fmt.localizedString(for: date, relativeTo: Date())
     }
 
     private func statusMessage(_ remainPct: Double) -> String {
