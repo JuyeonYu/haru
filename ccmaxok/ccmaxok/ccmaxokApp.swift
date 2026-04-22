@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController!
     private var refreshObserver: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
+    private var sleepObserver: NSObjectProtocol?
     private var iconRefreshTimer: Timer?
     private var dataRefreshTimer: Timer?
 
@@ -51,6 +52,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Sleep 직전: FileWatcher 정지. FSEvents가 잠든 사이 스테일 이벤트를 큐잉해
+        // wake 직후 의미 없는 refresh를 번쩍 튀우는 것을 방지.
+        sleepObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.appState.handleSystemWillSleep()
+            }
+        }
+
         // Sleep 복귀 시 FileWatcher 재시작 + 강제 refresh
         // NSWorkspace 알림은 shared.notificationCenter로만 관찰 가능
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
@@ -80,6 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let wakeObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(wakeObserver)
+        }
+        if let sleepObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(sleepObserver)
         }
     }
 }

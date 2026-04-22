@@ -55,6 +55,7 @@ final class AppState {
     private var fileAccess: FileAccessManager?
     private var database: DatabaseManager?
     private var fileWatcher: FileWatcher?
+    private var currentWatchPaths: Set<String> = []
 
     init() {
         setup()
@@ -110,9 +111,7 @@ final class AppState {
         // 동기 초기 상태 로드 — StatusBarController.updateIcon() 호출 시점에 올바른 상태 반영
         loadInitialState(fileAccess: fa)
 
-        let watcher = makeFileWatcher(fileAccess: fa)
-        self.fileWatcher = watcher
-        watcher.start()
+        installFileWatcher(fileAccess: fa)
 
         refresh()
 
@@ -137,6 +136,10 @@ final class AppState {
             DiagnosticsLogger.shared.warn("app", "refresh() called before FileAccessManager is ready")
             return
         }
+
+        // 앱 실행 후 ~/.claude가 생성됐거나 CLAUDE_CONFIG_DIR이 바뀌어 감시 대상 경로가
+        // 달라졌다면 FileWatcher를 다시 만든다. 30초 heartbeat에서만 호출되므로 비용 미미.
+        reevaluateWatchPathsIfNeeded(fileAccess: fileAccess)
 
         let fa = fileAccess
         let db = database
@@ -225,11 +228,16 @@ final class AppState {
     }
 
     func switchToFSEvents() {
-        fileWatcher?.stop()
         guard let fileAccess else { return }
-        let watcher = makeFileWatcher(fileAccess: fileAccess)
-        self.fileWatcher = watcher
-        watcher.start()
+        installFileWatcher(fileAccess: fileAccess)
+    }
+
+    /// 시스템이 sleep에 들어가기 직전. FSEventStream이 잠든 사이 누적해
+    /// wake 직후 튀우는 stale burst를 막기 위해 FileWatcher를 정지한다.
+    /// wake 시 `handleSystemWake()`에서 새로 만들므로 리소스 누수 없음.
+    func handleSystemWillSleep() {
+        fileWatcher?.stop()
+        DiagnosticsLogger.shared.info("app", "System will sleep — FileWatcher stopped")
     }
 
     /// 시스템이 sleep에서 복귀했을 때 FileWatcher를 새로 만들고 refresh를 강제한다.
@@ -239,11 +247,20 @@ final class AppState {
             refresh()
             return
         }
-        fileWatcher?.stop()
-        let watcher = makeFileWatcher(fileAccess: fileAccess)
-        self.fileWatcher = watcher
-        watcher.start()
+        installFileWatcher(fileAccess: fileAccess)
         refresh()
+    }
+
+    /// 감시 대상 경로가 바뀐 경우에만 FileWatcher를 재생성.
+    /// `refresh()`에서 30초 주기로 호출되며, 경로 변화가 없으면 무비용.
+    private func reevaluateWatchPathsIfNeeded(fileAccess: FileAccessManager) {
+        let newPaths = Set(buildWatchPaths(fileAccess: fileAccess))
+        guard newPaths != currentWatchPaths else { return }
+        DiagnosticsLogger.shared.info(
+            "app",
+            "Watch paths changed — rebuilding FileWatcher (was \(currentWatchPaths.count), now \(newPaths.count))"
+        )
+        installFileWatcher(fileAccess: fileAccess)
     }
 
     private func buildWatchPaths(fileAccess: FileAccessManager) -> [String] {
@@ -261,11 +278,16 @@ final class AppState {
         return watchPaths
     }
 
-    private func makeFileWatcher(fileAccess: FileAccessManager) -> FileWatcher {
-        FileWatcher(watchPaths: buildWatchPaths(fileAccess: fileAccess)) { [weak self] in
+    private func installFileWatcher(fileAccess: FileAccessManager) {
+        let paths = buildWatchPaths(fileAccess: fileAccess)
+        fileWatcher?.stop()
+        let watcher = FileWatcher(watchPaths: paths) { [weak self] in
             Task { @MainActor in
                 self?.refresh()
             }
         }
+        self.fileWatcher = watcher
+        self.currentWatchPaths = Set(paths)
+        watcher.start()
     }
 }
