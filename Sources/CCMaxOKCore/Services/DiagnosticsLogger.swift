@@ -8,11 +8,22 @@ import os
 /// Also mirrors each entry to `CCMaxOKCore.logger` (os.Logger) so it remains visible in
 /// Console.app.
 public final class DiagnosticsLogger: @unchecked Sendable {
-    public enum Level: String, Sendable {
+    public enum Level: String, Sendable, Comparable {
         case debug = "DEBUG"
         case info  = "INFO"
         case warn  = "WARN"
         case error = "ERROR"
+
+        private var rank: Int {
+            switch self {
+            case .debug: return 0
+            case .info:  return 1
+            case .warn:  return 2
+            case .error: return 3
+            }
+        }
+
+        public static func < (lhs: Level, rhs: Level) -> Bool { lhs.rank < rhs.rank }
     }
 
     public static let shared = DiagnosticsLogger()
@@ -22,6 +33,10 @@ public final class DiagnosticsLogger: @unchecked Sendable {
     private let rotatedURL: URL
     private let maxBytes: Int = 5 * 1024 * 1024
 
+    /// File-write 임계값. 기본은 `.info` — `.debug`는 파일에 기록되지 않고 Console.app에만 mirror.
+    /// 환경변수 `CCMAXOK_LOG_LEVEL=debug`로 런타임 오버라이드 가능.
+    private let fileThreshold: Level
+
     private let isoFormatter: ISO8601DateFormatter = {
         let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -30,14 +45,28 @@ public final class DiagnosticsLogger: @unchecked Sendable {
 
     private var errorCounter: Int = 0
 
-    public init(directory: URL? = nil) {
+    public init(directory: URL? = nil, fileThreshold: Level? = nil) {
         let dir = directory ?? Self.defaultDirectory()
         self.fileURL = dir.appendingPathComponent("haru.log")
         self.rotatedURL = dir.appendingPathComponent("haru.log.1")
+        self.fileThreshold = fileThreshold ?? Self.resolveThreshold()
 
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         if !FileManager.default.fileExists(atPath: fileURL.path) {
             FileManager.default.createFile(atPath: fileURL.path, contents: nil)
+        }
+    }
+
+    private static func resolveThreshold() -> Level {
+        guard let raw = ProcessInfo.processInfo.environment["CCMAXOK_LOG_LEVEL"]?.lowercased() else {
+            return .info
+        }
+        switch raw {
+        case "debug": return .debug
+        case "info":  return .info
+        case "warn", "warning": return .warn
+        case "error": return .error
+        default: return .info
         }
     }
 
@@ -73,12 +102,15 @@ public final class DiagnosticsLogger: @unchecked Sendable {
         let origin = "\(file):\(line)"
         let line = "\(timestamp)\t\(level.rawValue)\t\(category)\t\(origin)\t\(message)\(suffix)\n"
 
+        let shouldWriteFile = level >= fileThreshold
         queue.async { [weak self] in
             guard let self else { return }
             if level == .error || level == .warn {
                 self.errorCounter += 1
             }
-            self.appendAndRotate(line)
+            if shouldWriteFile {
+                self.appendAndRotate(line)
+            }
         }
 
         switch level {

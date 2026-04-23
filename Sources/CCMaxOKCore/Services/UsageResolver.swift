@@ -49,7 +49,7 @@ public enum UsageResolver {
         now: Date = Date()
     ) -> State {
         guard !fileAccess.allClaudeDirectories.isEmpty else {
-            logger.info("resolver", "No Claude config directory found under ~/.claude, ~/.config/claude, or CLAUDE_CONFIG_DIR")
+            logger.debug("resolver", "No Claude config directory found under ~/.claude, ~/.config/claude, or CLAUDE_CONFIG_DIR")
             return .noClaudeDir
         }
 
@@ -59,7 +59,7 @@ public enum UsageResolver {
         if let payload = tryParseLive(fileAccess: fileAccess, logger: logger) {
             let limits = payload.rateLimits
             if limits == nil {
-                logger.info("resolver", "live-status.json has no rateLimits field (plan likely does not expose them)")
+                logger.debug("resolver", "live-status.json has no rateLimits field (plan likely does not expose them)")
             }
             let snap = Snapshot(
                 freshness: .live,
@@ -92,12 +92,12 @@ public enum UsageResolver {
                 weekSonnetTokens: stats.weekSonnetTokens,
                 model: row.model
             )
-            logger.info("resolver", "Tier 2 (stale) resolved from DB snapshot dated \(Date(timeIntervalSince1970: row.timestamp))")
+            logger.debug("resolver", "Tier 2 (stale) resolved from DB snapshot dated \(Date(timeIntervalSince1970: row.timestamp))")
             return .resolved(snap)
         } else if database == nil {
-            logger.warn("resolver", "Tier 2 skipped — database is nil")
+            logger.debug("resolver", "Tier 2 skipped — database is nil")
         } else {
-            logger.info("resolver", "Tier 2 has no rows in rate_limit_snapshots")
+            logger.debug("resolver", "Tier 2 has no rows in rate_limit_snapshots")
         }
 
         // Tier 3: derived from stats-cache.json / session jsonl
@@ -115,11 +115,11 @@ public enum UsageResolver {
                 weekSonnetTokens: stats.weekSonnetTokens,
                 model: nil
             )
-            logger.info("resolver", "Tier 3 (derived) resolved — tokens=\(stats.todayTokens), sessions=\(stats.todaySessions)")
+            logger.debug("resolver", "Tier 3 (derived) resolved — tokens=\(stats.todayTokens), sessions=\(stats.todaySessions)")
             return .resolved(snap)
         }
 
-        logger.warn("resolver", "All tiers exhausted — entering waitingFirstRun")
+        logger.debug("resolver", "All tiers exhausted — entering waitingFirstRun")
         return .waitingFirstRun
     }
 
@@ -131,7 +131,7 @@ public enum UsageResolver {
     ) -> StatuslinePayload? {
         let url = fileAccess.liveStatusPath
         guard FileManager.default.fileExists(atPath: url.path) else {
-            logger.info("resolver", "Tier 1 skipped — \(url.path) does not exist")
+            logger.debug("resolver", "Tier 1 skipped — \(url.path) does not exist")
             return nil
         }
         do {

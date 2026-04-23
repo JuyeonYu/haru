@@ -149,6 +149,17 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
+                if let wrapped = wrappedStatusline {
+                    LabeledContent("감싼 statusline") {
+                        Text(wrapped)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                            .help(wrapped)
+                    }
+                }
                 if let repoURL = URL(string: "https://github.com/JuyeonYu/haru") {
                     Link(destination: repoURL) {
                         HStack(spacing: 4) {
@@ -401,6 +412,10 @@ struct SettingsView: View {
 
     private var appBuild: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+    }
+
+    private var wrappedStatusline: String? {
+        StatuslineSetup.wrappedCommand(fileAccess: FileAccessManager())
     }
 
     private func copyLogToClipboard() {
