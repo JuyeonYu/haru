@@ -39,11 +39,18 @@ public enum UsageResolver {
     }
 
     public struct Stats: Sendable, Equatable {
+        public enum TokenSource: String, Sendable, Equatable {
+            case statsCache = "stats-cache"
+            case jsonlFallback = "jsonl-fallback"
+            case none
+        }
+
         public let todaySessions: Int
         public let todayMessages: Int
         public let todayTokens: Int
         public let weekSonnetTokens: Int
         public let latestActivity: Date?
+        public let tokenSource: TokenSource
     }
 
     public static func resolve(
@@ -130,7 +137,7 @@ public enum UsageResolver {
                 weekSonnetTokens: stats.weekSonnetTokens,
                 model: nil
             )
-            logger.info("resolver", "Tier 3 (derived) resolved — tokens=\(stats.todayTokens), sessions=\(stats.todaySessions)")
+            logger.info("resolver", "Tier 3 (derived) resolved — tokens=\(stats.todayTokens) (source: \(stats.tokenSource.rawValue)), sessions=\(stats.todaySessions)")
             return .resolved(snap)
         }
 
@@ -173,12 +180,27 @@ public enum UsageResolver {
         fmt.locale = Locale(identifier: "en_US_POSIX")
         let todayStr = fmt.string(from: now)
 
-        var todayTokens = 0
-        var sonnetTotal = 0
+        let sessionInfo = scanSessionFiles(fileAccess: fileAccess, now: now, logger: logger)
+
+        // stats-cache.json이 today 엔트리를 갖고 있을 때만 그 값을 신뢰. 없으면 JSONL 합산으로 폴백.
+        // (의도된 부분 집계를 덮어쓰지 않도록 "없음"과 "0"을 구분.)
+        let cacheTodayTokens: Int? = cache?.modelTokens(for: todayStr).map { $0.values.reduce(0, +) }
+        let todayTokens: Int
+        let tokenSource: Stats.TokenSource
+        if let cached = cacheTodayTokens {
+            todayTokens = cached
+            tokenSource = .statsCache
+        } else if sessionInfo.todayTokens > 0 {
+            todayTokens = sessionInfo.todayTokens
+            tokenSource = .jsonlFallback
+        } else {
+            todayTokens = 0
+            tokenSource = .none
+        }
+
+        let weekSonnetTokens: Int
         if let cache {
-            if let tokens = cache.modelTokens(for: todayStr) {
-                todayTokens = tokens.values.reduce(0, +)
-            }
+            var sonnetTotal = 0
             for dayOffset in 0..<7 {
                 guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
                 let dateStr = fmt.string(from: date)
@@ -188,16 +210,18 @@ public enum UsageResolver {
                     }
                 }
             }
+            weekSonnetTokens = sonnetTotal
+        } else {
+            weekSonnetTokens = sessionInfo.weekSonnetTokens
         }
-
-        let sessionInfo = scanSessionFiles(fileAccess: fileAccess, todayStr: todayStr, logger: logger)
 
         return Stats(
             todaySessions: sessionInfo.sessions,
             todayMessages: sessionInfo.messages,
             todayTokens: todayTokens,
-            weekSonnetTokens: sonnetTotal,
-            latestActivity: sessionInfo.latestMod
+            weekSonnetTokens: weekSonnetTokens,
+            latestActivity: sessionInfo.latestMod,
+            tokenSource: tokenSource
         )
     }
 
@@ -218,40 +242,84 @@ public enum UsageResolver {
         }
     }
 
-    private struct SessionScan { let sessions: Int; let messages: Int; let latestMod: Date? }
+    private struct SessionScan {
+        let sessions: Int
+        let messages: Int
+        let latestMod: Date?
+        /// stats-cache.json이 today 엔트리를 제공하지 못할 때 사용할 JSONL 합산값.
+        let todayTokens: Int
+        /// stats-cache.json이 아예 없을 때 사용할 JSONL 7일치 Sonnet 합산값.
+        let weekSonnetTokens: Int
+    }
 
     private static func scanSessionFiles(
         fileAccess: FileAccessManager,
-        todayStr: String,
+        now: Date,
         logger: DiagnosticsLogger
     ) -> SessionScan {
         let fm = FileManager.default
+        var calendar = Calendar.current
+        calendar.timeZone = .current
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = .current
         fmt.locale = Locale(identifier: "en_US_POSIX")
+        let todayStr = fmt.string(from: now)
+
+        // 주간 Sonnet 계산용 윈도우: today 포함 7일 전 00:00부터.
+        // (stats-cache의 `0..<7` dayOffset 범위와 일치시켜 동일 의미 유지.)
+        let startOfToday = calendar.startOfDay(for: now)
+        let weekStart = calendar.date(byAdding: .day, value: -6, to: startOfToday) ?? startOfToday
 
         do {
             let files = try fileAccess.sessionFiles()
             var sessions = 0
             var messages = 0
+            var todayTokens = 0
+            var weekSonnet = 0
             var latest: Date?
 
             for url in files {
                 let attrs = try fm.attributesOfItem(atPath: url.path)
                 guard let mod = attrs[.modificationDate] as? Date else { continue }
                 if latest == nil || mod > latest! { latest = mod }
-                guard fmt.string(from: mod) == todayStr else { continue }
-                sessions += 1
-                if let content = try? String(contentsOf: url, encoding: .utf8) {
-                    let msgs = SessionMessage.parseJSONL(content, context: url.lastPathComponent)
+
+                let isToday = fmt.string(from: mod) == todayStr
+                let inWeekWindow = mod >= weekStart
+                // 7일 이전 파일은 파싱 비용 회피(팝오버 갱신 30초 주기에서 수백 파일 × MB 방어).
+                guard isToday || inWeekWindow else { continue }
+
+                guard let content = try? String(contentsOf: url, encoding: .utf8) else { continue }
+                let msgs = SessionMessage.parseJSONL(content, context: url.lastPathComponent)
+
+                if isToday {
+                    sessions += 1
                     messages += msgs.filter { $0.type == "user" }.count
+                    let totals = SessionMessage.totalTokens(msgs)
+                    todayTokens += totals.total
+                }
+
+                if inWeekWindow {
+                    for m in msgs {
+                        guard let model = m.model, model.lowercased().contains("sonnet") else { continue }
+                        guard let usage = m.usage else { continue }
+                        weekSonnet += usage.inputTokens
+                            + usage.outputTokens
+                            + (usage.cacheReadInputTokens ?? 0)
+                            + (usage.cacheCreationInputTokens ?? 0)
+                    }
                 }
             }
-            return SessionScan(sessions: sessions, messages: messages, latestMod: latest)
+            return SessionScan(
+                sessions: sessions,
+                messages: messages,
+                latestMod: latest,
+                todayTokens: todayTokens,
+                weekSonnetTokens: weekSonnet
+            )
         } catch {
             logger.warn("resolver", "Failed to enumerate session jsonl files", error: error)
-            return SessionScan(sessions: 0, messages: 0, latestMod: nil)
+            return SessionScan(sessions: 0, messages: 0, latestMod: nil, todayTokens: 0, weekSonnetTokens: 0)
         }
     }
 }
