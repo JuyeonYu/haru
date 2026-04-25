@@ -6,8 +6,9 @@ import Foundation
 public enum UsageResolver {
 
     /// DB 스냅샷이 이보다 오래되면 Tier 2를 신뢰할 수 없는 것으로 보고 Tier 3로 내려간다.
-    /// (5시간/7일 rate limit 창을 한참 벗어난 수치를 UI에 남기지 않기 위함.)
-    public static let staleThreshold: TimeInterval = 24 * 3600
+    /// 5시간 rate limit 윈도우와 일치 — 그 윈도우가 이미 리셋됐을 가능성이 커서 옛 값은 사용 불가.
+    /// (live-status.json이 정상이면 매 응답마다 갱신되므로 이 임계로 인한 사이드 이펙트 미미.)
+    public static let staleThreshold: TimeInterval = 5 * 3600
 
     public struct Snapshot: Sendable, Equatable {
         public enum Freshness: Sendable, Equatable {
@@ -53,9 +54,13 @@ public enum UsageResolver {
         public let tokenSource: TokenSource
     }
 
+    /// Tier 0(OAuth) 캐시 데이터를 신선하다고 간주할 TTL. OAuthUsageProvider의 캐시 TTL과 정렬.
+    public static let oauthCacheTTL: TimeInterval = 5 * 60
+
     public static func resolve(
         fileAccess: FileAccessManager,
         database: DatabaseManager?,
+        oauthCache: OAuthRateLimitsCache? = nil,
         logger: DiagnosticsLogger = .shared,
         now: Date = Date()
     ) -> State {
@@ -65,6 +70,24 @@ public enum UsageResolver {
         }
 
         let stats = computeStats(fileAccess: fileAccess, logger: logger)
+
+        // Tier 0: OAuth API 캐시 (statusline 훅과 무관하게 동작 — Claude Code CLI 미실행 시도 데이터 보장).
+        if let oauth = oauthCache?.current(now: now, ttl: Self.oauthCacheTTL) {
+            let snap = Snapshot(
+                freshness: .live,
+                fiveHourUsedPct: oauth.fiveHour.usedPercentage,
+                fiveHourResetsAt: oauth.fiveHour.resetDate,
+                sevenDayUsedPct: oauth.sevenDay.usedPercentage,
+                sevenDayResetsAt: oauth.sevenDay.resetDate,
+                todaySessionCount: stats.todaySessions,
+                todayMessageCount: stats.todayMessages,
+                todayTokens: stats.todayTokens,
+                weekSonnetTokens: stats.weekSonnetTokens,
+                model: nil
+            )
+            logger.debug("resolver", "Tier 0 (OAuth) resolved")
+            return .resolved(snap)
+        }
 
         // Tier 1: live-status.json
         if let payload = tryParseLive(fileAccess: fileAccess, logger: logger) {
@@ -90,12 +113,18 @@ public enum UsageResolver {
 
         // Tier 2: DB last snapshot
         if let db = database {
+            // Tier 1이 실패해서 여기까지 온 상태에서도, live-status.json 자체는 디스크에 더 새로운
+            // mtime으로 존재할 수 있다(파싱만 실패한 케이스). 그 경우 옛 DB 값을 띄우면 사용자가
+            // 실제와 다른 잔여량을 보게 되므로 mtime을 비교해 live가 더 새로우면 Tier 2를 스킵한다.
+            let liveMod = (try? FileManager.default.attributesOfItem(atPath: fileAccess.liveStatusPath.path)[.modificationDate]) as? Date
             do {
                 if let row = try db.rateLimitSnapshots(last: 1).first {
                     let snapshotDate = Date(timeIntervalSince1970: row.timestamp)
                     let age = now.timeIntervalSince(snapshotDate)
                     if age > Self.staleThreshold {
                         logger.info("resolver", "Tier 2 skipped — snapshot is \(Int(age / 3600))h old, beyond \(Int(Self.staleThreshold / 3600))h threshold")
+                    } else if let liveMod, liveMod > snapshotDate {
+                        logger.info("resolver", "Tier 2 skipped — live-status.json (mtime \(liveMod)) is newer than DB snapshot (\(snapshotDate)); Tier 1 parse failure should not surface stale DB")
                     } else {
                         let snap = Snapshot(
                             freshness: .stale(asOf: snapshotDate),
@@ -278,6 +307,9 @@ public enum UsageResolver {
             var todayTokens = 0
             var weekSonnet = 0
             var latest: Date?
+            // 같은 message_id+request_id가 여러 jsonl(fork된 세션 등)에 재기록되는 케이스에서
+            // 토큰을 중복 합산하지 않도록 전역 dedup 키. ai-token-monitor와 동일한 전략.
+            var seenAssistantKeys = Set<String>()
 
             for url in files {
                 let attrs = try fm.attributesOfItem(atPath: url.path)
@@ -295,18 +327,31 @@ public enum UsageResolver {
                 if isToday {
                     sessions += 1
                     messages += msgs.filter { $0.type == "user" }.count
-                    let totals = SessionMessage.totalTokens(msgs)
-                    todayTokens += totals.total
                 }
 
-                if inWeekWindow {
-                    for m in msgs {
-                        guard let model = m.model, model.lowercased().contains("sonnet") else { continue }
-                        guard let usage = m.usage else { continue }
-                        weekSonnet += usage.inputTokens
-                            + usage.outputTokens
-                            + (usage.cacheReadInputTokens ?? 0)
-                            + (usage.cacheCreationInputTokens ?? 0)
+                for m in msgs {
+                    guard m.type == "assistant", let usage = m.usage else { continue }
+                    let dedupKey: String? = {
+                        guard let mid = m.messageId else { return nil }
+                        return "\(mid):\(m.requestId ?? "")"
+                    }()
+                    if let key = dedupKey {
+                        if seenAssistantKeys.contains(key) { continue }
+                        seenAssistantKeys.insert(key)
+                    }
+
+                    let totalTokens = usage.inputTokens
+                        + usage.outputTokens
+                        + (usage.cacheReadInputTokens ?? 0)
+                        + (usage.cacheCreationInputTokens ?? 0)
+
+                    if isToday {
+                        todayTokens += totalTokens
+                    }
+                    if inWeekWindow,
+                       let model = m.model,
+                       model.lowercased().contains("sonnet") {
+                        weekSonnet += totalTokens
                     }
                 }
             }

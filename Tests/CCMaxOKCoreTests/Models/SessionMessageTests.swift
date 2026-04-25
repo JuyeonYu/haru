@@ -38,6 +38,30 @@ import Testing
     #expect(messages[1].model == "claude-opus-4-6")
 }
 
+@Test func parsesNestedMessageObject() {
+    // 실제 Claude Code jsonl: model/usage/id가 message 객체 안에 중첩.
+    let line = """
+    {"type":"assistant","sessionId":"s1","requestId":"r1","message":{"id":"msg_abc","model":"claude-opus-4-7","usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":200,"cache_creation_input_tokens":10}}}
+    """
+    let messages = SessionMessage.parseJSONL(line)
+    #expect(messages.count == 1)
+    #expect(messages[0].model == "claude-opus-4-7")
+    #expect(messages[0].messageId == "msg_abc")
+    #expect(messages[0].requestId == "r1")
+    #expect(messages[0].usage?.inputTokens == 100)
+    #expect(messages[0].usage?.cacheCreationInputTokens == 10)
+}
+
+@Test func cacheCreationFallsBackToNestedEphemeralFields() {
+    // 평탄화 cache_creation_input_tokens가 누락되고 nested cache_creation만 있는 경우.
+    let line = """
+    {"type":"assistant","message":{"id":"m1","model":"claude-sonnet-4-5","usage":{"input_tokens":1,"output_tokens":2,"cache_creation":{"ephemeral_5m_input_tokens":300,"ephemeral_1h_input_tokens":700}}}}
+    """
+    let messages = SessionMessage.parseJSONL(line)
+    #expect(messages.count == 1)
+    #expect(messages[0].usage?.cacheCreationInputTokens == 1000)
+}
+
 @Test func skipsMalformedLinesWithoutFailingWhole() {
     // 중간에 깨진 JSON이 섞여 있어도 나머지는 파싱되어야 한다 (A2).
     let mixed = """

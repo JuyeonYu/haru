@@ -61,6 +61,12 @@ final class AppState {
     private var fileWatcher: FileWatcher?
     private var currentWatchPaths: Set<String> = []
 
+    // OAuth API Tier 0: statusline 훅이 동작하지 않는 시점에도 정확한 5시간 사용량을 받기 위한 안전망.
+    // Provider는 actor라 백그라운드 Task에서 호출하고, 결과는 동기 cache에 적재해 UsageResolver가 읽는다.
+    private let oauthCache = OAuthRateLimitsCache()
+    private var oauthProvider: OAuthUsageProvider?
+    private var oauthRefreshTask: Task<Void, Never>?
+
     init() {
         setup()
     }
@@ -113,12 +119,18 @@ final class AppState {
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
 
+        self.oauthProvider = OAuthUsageProvider(
+            tokenSource: ClaudeCodeKeychainTokenSource(),
+            http: URLSessionOAuthHTTPClient()
+        )
+
         // 동기 초기 상태 로드 — StatusBarController.updateIcon() 호출 시점에 올바른 상태 반영
         loadInitialState(fileAccess: fa)
 
         installFileWatcher(fileAccess: fa)
 
         refresh()
+        refreshOAuthInBackground()
 
         NotificationCenter.default.addObserver(
             forName: .rendererSettingsChanged,
@@ -132,8 +144,30 @@ final class AppState {
     }
 
     private func loadInitialState(fileAccess fa: FileAccessManager) {
-        let state = UsageResolver.resolve(fileAccess: fa, database: self.database)
+        let state = UsageResolver.resolve(fileAccess: fa, database: self.database, oauthCache: oauthCache)
         apply(state: state)
+    }
+
+    /// 5분에 한 번 OAuth API를 백그라운드로 갱신. 실패는 조용히 무시(폴백 체인이 처리).
+    private func refreshOAuthInBackground() {
+        guard let provider = oauthProvider else { return }
+        let cache = oauthCache
+        // 같은 사이클의 중복 호출 방지.
+        oauthRefreshTask?.cancel()
+        oauthRefreshTask = Task.detached(priority: .utility) { [weak self] in
+            let result = await provider.fetchUsage()
+            switch result {
+            case .success(let response):
+                if let limits = response.toRateLimits() {
+                    cache.store(limits: limits)
+                    await MainActor.run {
+                        self?.refresh()
+                    }
+                }
+            case .failure(let err):
+                DiagnosticsLogger.shared.info("oauth", "OAuth usage fetch skipped/failed: \(err)")
+            }
+        }
     }
 
     func refresh() {
@@ -149,8 +183,9 @@ final class AppState {
         let fa = fileAccess
         let db = database
 
+        let cache = oauthCache
         Task.detached(priority: .utility) {
-            let state = UsageResolver.resolve(fileAccess: fa, database: db)
+            let state = UsageResolver.resolve(fileAccess: fa, database: db, oauthCache: cache)
             let conflicts = StatuslineSetup.projectLocalStatuslineConflicts(fileAccess: fa)
 
             // Persist live-only snapshots to the DB so the stale-fallback path has data later.

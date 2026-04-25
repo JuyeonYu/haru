@@ -61,6 +61,11 @@ public struct RateLimits: Codable, Sendable {
     public let fiveHour: RateLimitWindow
     public let sevenDay: RateLimitWindow
 
+    public init(fiveHour: RateLimitWindow, sevenDay: RateLimitWindow) {
+        self.fiveHour = fiveHour
+        self.sevenDay = sevenDay
+    }
+
     enum CodingKeys: String, CodingKey {
         case fiveHour = "five_hour"
         case sevenDay = "seven_day"

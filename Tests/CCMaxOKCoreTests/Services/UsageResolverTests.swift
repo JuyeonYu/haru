@@ -123,6 +123,81 @@ struct UsageResolverFallbackTests {
         #expect(stats.tokenSource == .none)
     }
 
+    @Test func duplicateMessageIdsAcrossFilesAreCountedOnce() throws {
+        let env = try makeFixture()
+        defer { env.cleanup() }
+
+        // 같은 message_id를 가진 assistant 메시지가 두 jsonl 파일에 등장.
+        // (Claude Code의 fork된 세션이나 동일 메시지가 중복 기록되는 케이스.)
+        let dupLine = """
+        {"type":"assistant","sessionId":"s1","requestId":"r1","message":{"id":"msg_dup","model":"claude-opus-4-7","usage":{"input_tokens":100,"output_tokens":50}}}
+        """
+        try env.writeRawSessionJsonl(project: "proj-a", session: "fork-1", mtime: env.now, raw: dupLine)
+        try env.writeRawSessionJsonl(project: "proj-a", session: "fork-2", mtime: env.now, raw: dupLine)
+
+        let stats = UsageResolver.computeStats(fileAccess: env.fileAccess, now: env.now)
+
+        // 두 파일에 같은 메시지가 있어도 한 번만 합산되어야 함 (input 100 + output 50 = 150).
+        #expect(stats.todayTokens == 150)
+    }
+
+    @Test func tier2SkippedWhenSnapshotOlderThanFiveHours() throws {
+        let env = try makeFixture()
+        defer { env.cleanup() }
+
+        try env.ensureCCMaxOKDir()
+        let db = try env.makeDatabase()
+
+        // 6시간 전 스냅샷 (5h staleThreshold 초과) — Tier 2가 스킵되어야 한다.
+        let sixHoursAgo = env.now.addingTimeInterval(-6 * 3600)
+        try db.insertRateLimitSnapshot(
+            timestamp: sixHoursAgo.timeIntervalSince1970,
+            fiveHourUsedPct: 43.0,
+            fiveHourResetsAt: sixHoursAgo.timeIntervalSince1970 + 5 * 3600,
+            sevenDayUsedPct: 12.0,
+            sevenDayResetsAt: sixHoursAgo.timeIntervalSince1970 + 7 * 86400,
+            model: "claude-opus-4-7"
+        )
+
+        // Tier 1 데이터 없음 (live-status.json 미존재) + Tier 3 데이터도 없음 →
+        // Tier 2가 stale로 스킵되면 waitingFirstRun이 되어야 한다.
+        let state = UsageResolver.resolve(fileAccess: env.fileAccess, database: db, now: env.now)
+
+        if case .resolved(let snap) = state, snap.fiveHourUsedPct == 43.0 {
+            Issue.record("Tier 2 should have been skipped (snapshot 6h old > 5h threshold) but stale 43% surfaced")
+        }
+    }
+
+    @Test func tier2SkippedWhenLiveStatusNewerThanSnapshot() throws {
+        let env = try makeFixture()
+        defer { env.cleanup() }
+
+        try env.ensureCCMaxOKDir()
+        let db = try env.makeDatabase()
+
+        // 2시간 전 DB 스냅샷 — staleThreshold(5h) 이내라서 임계만으로는 스킵 안 됨.
+        let twoHoursAgo = env.now.addingTimeInterval(-2 * 3600)
+        try db.insertRateLimitSnapshot(
+            timestamp: twoHoursAgo.timeIntervalSince1970,
+            fiveHourUsedPct: 43.0,
+            fiveHourResetsAt: twoHoursAgo.timeIntervalSince1970 + 5 * 3600,
+            sevenDayUsedPct: 12.0,
+            sevenDayResetsAt: twoHoursAgo.timeIntervalSince1970 + 7 * 86400,
+            model: "claude-opus-4-7"
+        )
+
+        // 손상된 live-status.json — 파싱은 실패하지만 mtime은 DB보다 새로움.
+        let liveURL = env.fileAccess.liveStatusPath
+        try "not valid json".write(to: liveURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.modificationDate: env.now], ofItemAtPath: liveURL.path)
+
+        let state = UsageResolver.resolve(fileAccess: env.fileAccess, database: db, now: env.now)
+
+        if case .resolved(let snap) = state, snap.fiveHourUsedPct == 43.0 {
+            Issue.record("Tier 2 should have been skipped because live-status.json (mtime now) is newer than DB snapshot (2h ago)")
+        }
+    }
+
     @Test func malformedJsonlLinesAreSkippedAndValidLinesStillCount() throws {
         let env = try makeFixture()
         defer { env.cleanup() }
@@ -206,6 +281,14 @@ private struct ResolverFixture {
 
     func writeStatsCache(todayModelTokens: [String: Int]) throws {
         try writeStatsCache(modelTokensByDate: [dateString(for: now): todayModelTokens])
+    }
+
+    func ensureCCMaxOKDir() throws {
+        try fileAccess.ensureCCMaxOKDirectory()
+    }
+
+    func makeDatabase() throws -> DatabaseManager {
+        try DatabaseManager(path: fileAccess.databasePath.path)
     }
 
     func writeStatsCache(modelTokensByDate: [String: [String: Int]]) throws {
