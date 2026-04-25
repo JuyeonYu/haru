@@ -56,6 +56,10 @@ final class AppState {
     var databaseUnavailable: Bool = false
     var databaseErrorReason: String? = nil
 
+    /// 현재 haru가 감싸고 있는 기존 statusline 명령어 (없으면 nil).
+    /// ccusage 등 경쟁 도구가 감지되면 wrapper가 자동 장착되고 이 값에 저장된다.
+    var wrappedExistingCommand: String? = nil
+
     private var fileAccess: FileAccessManager?
     private var database: DatabaseManager?
     private var fileWatcher: FileWatcher?
@@ -105,17 +109,21 @@ final class AppState {
             do {
                 let result = try StatuslineSetup.setup(fileAccess: fa)
                 self.settingsPatchFailures = result.failures
+                applySetupOutcome(result.outcome)
                 DiagnosticsLogger.shared.info("setup", "Statusline hook installed (patched \(result.succeeded.count), failed \(result.failures.count))")
             } catch {
                 DiagnosticsLogger.shared.error("setup", "Statusline setup failed", error: error)
             }
-        } else if StatuslineSetup.scriptNeedsUpdate(fileAccess: fa) {
-            do {
-                try StatuslineSetup.deployScript(fileAccess: fa)
-                DiagnosticsLogger.shared.info("setup", "Statusline script updated to use absolute paths")
-            } catch {
-                DiagnosticsLogger.shared.error("setup", "Statusline script update failed", error: error)
+        } else {
+            if StatuslineSetup.scriptNeedsUpdate(fileAccess: fa) {
+                do {
+                    try StatuslineSetup.deployScript(fileAccess: fa)
+                    DiagnosticsLogger.shared.info("setup", "Statusline script updated")
+                } catch {
+                    DiagnosticsLogger.shared.error("setup", "Statusline script update failed", error: error)
+                }
             }
+            self.wrappedExistingCommand = StatuslineSetup.wrappedCommand(fileAccess: fa)
         }
         isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fa)
 
@@ -256,12 +264,22 @@ final class AppState {
         do {
             let result = try StatuslineSetup.setup(fileAccess: fileAccess)
             self.settingsPatchFailures = result.failures
+            applySetupOutcome(result.outcome)
             isSetupComplete = StatuslineSetup.isSetupComplete(fileAccess: fileAccess)
             DiagnosticsLogger.shared.info("setup", "Manual re-setup completed (patched \(result.succeeded.count), failed \(result.failures.count))")
         } catch {
             DiagnosticsLogger.shared.error("setup", "Manual re-setup failed", error: error)
         }
         refresh()
+    }
+
+    private func applySetupOutcome(_ outcome: SetupOutcome) {
+        switch outcome {
+        case .wrappedExisting(let cmd):
+            self.wrappedExistingCommand = cmd
+        case .installed, .alreadyInstalled:
+            self.wrappedExistingCommand = nil
+        }
     }
 
     func switchToPolling() {

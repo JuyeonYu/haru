@@ -102,6 +102,10 @@ public final class FileAccessManager: Sendable {
         ccmaxokDirectory.appendingPathComponent("statusline.sh")
     }
 
+    public var wrappedCommandPath: URL {
+        ccmaxokDirectory.appendingPathComponent("wrapped-command.txt")
+    }
+
     public var databasePath: URL {
         ccmaxokDirectory.appendingPathComponent("history.sqlite")
     }
